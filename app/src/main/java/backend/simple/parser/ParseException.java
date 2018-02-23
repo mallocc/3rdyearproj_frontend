@@ -1,4 +1,4 @@
-package Backend.simple.parser;
+package backend.simple.parser;
 
 /**
  * ParseException explains why and where the error occurs in source JSON text.

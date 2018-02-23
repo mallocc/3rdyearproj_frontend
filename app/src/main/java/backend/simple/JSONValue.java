@@ -2,7 +2,7 @@
  * $Id: JSONValue.java,v 1.1 2006/04/15 14:37:04 platform Exp $
  * Created on 2006-4-15
  */
-package Backend.simple;
+package backend.simple;
 
 import java.io.IOException;
 import java.io.Reader;
@@ -13,8 +13,8 @@ import java.util.Collection;
 // import java.util.List;
 import java.util.Map;
 
-import simple.parser.JSONParser;
-import simple.parser.ParseException;
+import backend.simple.parser.JSONParser;
+import backend.simple.parser.ParseException;
 
 
 /**

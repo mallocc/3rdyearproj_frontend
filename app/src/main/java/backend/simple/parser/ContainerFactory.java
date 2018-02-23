@@ -1,4 +1,4 @@
-package Backend.simple.parser;
+package backend.simple.parser;
 
 import java.util.List;
 import java.util.Map;

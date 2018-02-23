@@ -2,7 +2,7 @@
  * $Id: JSONObject.java,v 1.1 2006/04/15 14:10:48 platform Exp $
  * Created on 2006-4-10
  */
-package Backend.simple;
+package backend.simple;
 
 import java.io.IOException;
 import java.io.StringWriter;

@@ -1,8 +1,8 @@
-package Backend;
+package backend;
 
 import java.io.IOException;
 
-import simple.parser.ParseException;
+import backend.simple.parser.ParseException;
 
 public class Controller
 {
@@ -11,7 +11,7 @@ public class Controller
 	private TescoAPI cloud;
 	private ScalesDevice scales;
 	
-	Controller(String databasePath)
+	public Controller(String databasePath)
 	{
 		model = new Model(databasePath);
 		reader = new BarcodeReader();

@@ -1,4 +1,4 @@
-package Backend;
+package backend;
 
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
@@ -20,6 +20,13 @@ public class Product
 		this.barcode = barcode;
 		this.nutrition = nutrition;
 	}
+	Product(String name, String tpnc, String gtin, NutritionTable nutrition)
+	{
+		this.name = name;
+		this.tpnc = tpnc;
+		this.gtin = gtin;
+		this.nutrition = nutrition;
+	}
 
 	public String getBarcode()
 	{
@@ -31,6 +38,10 @@ public class Product
 		return name;
 	}
 	
+	public void setNutrition(NutritionTable table)
+	{
+		this.nutrition = table;
+	}
 	public NutritionTable getNutrition()
 	{
 		return nutrition;
@@ -53,9 +64,10 @@ public class Product
 	public String toString()
 	{
 		return    "-Product: "
-				+ "\n -Barcode:    " + barcode
-				+ "\n -name:       " + name
-				+ nutrition.toString();
+				+ "\n -GTIN:    " + gtin
+				+ "\n -TPNC:    " + tpnc
+				+ "\n -name:    " + name
+				+ (nutrition != null ? nutrition.toString() : "\nNo nutrition.");
 	}
 	
 	public String toCSV()

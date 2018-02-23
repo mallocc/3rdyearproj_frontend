@@ -1,4 +1,4 @@
-package Backend.simple;
+package backend.simple;
 
 import java.io.IOException;
 import java.io.Writer;

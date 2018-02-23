@@ -1,4 +1,4 @@
-package Backend.simple;
+package backend.simple;
 
 
 import java.util.ArrayList;

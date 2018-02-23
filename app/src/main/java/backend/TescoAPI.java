@@ -1,4 +1,4 @@
-package Backend;
+package backend;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -8,15 +8,17 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Iterator;
 
+import org.jsoup.Connection;
+import org.jsoup.Connection.Response;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import simple.JSONArray;
-import simple.JSONObject;
-import simple.parser.JSONParser;
-import simple.parser.ParseException;
+import backend.simple.JSONArray;
+import backend.simple.JSONObject;
+import backend.simple.parser.JSONParser;
+import backend.simple.parser.ParseException;
 
 public class TescoAPI
 {
@@ -63,22 +65,56 @@ public class TescoAPI
 			String tpnc = j.get("id").toString();
 			String desc = j.get("name").toString();
 			Product p = getTPNC(tpnc);
-			if (p != null)
+			if (p.getNutrition() != null)
 				ps.add(p);
 			else
-				ps.add(new Product(desc, tpnc, scapeTPNC(tpnc)));
+			{
+				p.setNutrition(scapeTPNC(tpnc));
+				ps.add(p);
+			}
 		}
 
 		return ps;
 	}
-
-	private Product getJSONProduct(String json) throws ParseException
+	
+	public Product searchBarcode(String barcode) throws IOException, ParseException
 	{
-		String s;
+		Product p = null;
+		
+		p = getGTIN(barcode);
+		//System.out.println(p);
+		if(p == null)
+			return null;
+		else if(p.getNutrition() == null)
+			p.setNutrition(scapeTPNC(p.tpnc));
+		return p;
+		//use getGTIN
+		//if product is null then ask to search by name
+		//if table is null then scrape tesco using tpnc (not guaranteed to be correct if it isnt food)
+		//else it should return a product with a table
+
+	}
+
+	private Product getJSONProduct(String url) throws ParseException, IOException
+	{
+		// form request
+		URL obj = new URL(url);
+		HttpURLConnection con = (HttpURLConnection) obj.openConnection();
+		con.setRequestMethod("GET");
+		con.setRequestProperty("Ocp-Apim-Subscription-Key", TESCO_PRIVATE_KEY);
+
+		// get response
+		BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
+		String inputLine;
+		StringBuffer response = new StringBuffer();
+		while ((inputLine = in.readLine()) != null)
+			response.append(inputLine);
+		in.close();
+		String s = response.toString();
 
 		// parse to JSON form
 		JSONParser parser = new JSONParser();
-		JSONObject jsonObject = (JSONObject) parser.parse(json);
+		JSONObject jsonObject = (JSONObject) parser.parse(s);
 
 		// get products element
 		JSONArray msg = (JSONArray) jsonObject.get("products");
@@ -89,8 +125,9 @@ public class TescoAPI
 			JSONObject j = (JSONObject) iterator.next();
 			// get name of product
 			String name = j.get("description").toString();
-			// get barcode of product
-			String barcode = j.get("gtin").toString();
+			// get barcode_24dp of product
+			String gtin = j.get("gtin").toString();
+			String tpnc = j.get("tpnc").toString();
 			
 			// if there is a calcNutrition section
 			if (j.get("calcNutrition") != null)
@@ -141,9 +178,9 @@ public class TescoAPI
 				nt.setSalt(Float.parseFloat(s));
 
 				// return new product
-				return new Product(name, barcode, nt);
+				return new Product(name, tpnc, gtin, nt);
 			}
-			return new Product(name, barcode, null);
+			return new Product(name, tpnc, gtin, null);
 		}
 		return null;
 	}
@@ -152,59 +189,31 @@ public class TescoAPI
 	{
 		// form request
 		String url = "https://dev.tescolabs.com/product/?tpnc=" + number;
-		URL obj = new URL(url);
-		HttpURLConnection con = (HttpURLConnection) obj.openConnection();
-		con.setRequestMethod("GET");
-		con.setRequestProperty("Ocp-Apim-Subscription-Key", TESCO_PRIVATE_KEY);
 
-		// get response
-		BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-		String inputLine;
-		StringBuffer response = new StringBuffer();
-		while ((inputLine = in.readLine()) != null)
-			response.append(inputLine);
-		in.close();
-		String s = response.toString();
-
-		return getJSONProduct(s);
+		return getJSONProduct(url);
 	}
 
 	private  Product getGTIN(String number) throws IOException, ParseException
 	{
 		// form request
 		String url = "https://dev.tescolabs.com/product/?gtin=" + number;
-		URL obj = new URL(url);
-		HttpURLConnection con = (HttpURLConnection) obj.openConnection();
-		con.setRequestMethod("GET");
-		con.setRequestProperty("Ocp-Apim-Subscription-Key", TESCO_PRIVATE_KEY);
 
-		// get response
-		BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-		String inputLine;
-		StringBuffer response = new StringBuffer();
-		while ((inputLine = in.readLine()) != null)
-			response.append(inputLine);
-		in.close();
-		String s = response.toString();
-
-		return getJSONProduct(s);
+		return getJSONProduct(url);
 	}
 	
-	public Product searchBarcode(String barcode)
-	{
-		
-		return null;
-	}
-
 	private NutritionTable scapeTPNC(String number) throws IOException
 	{
 		NutritionTable nt = new NutritionTable();
-
-		System.out.println(number);
 		
 		// form request
 		String url = "https://www.tesco.com/groceries/en-GB/products/" + number;
-		Document doc = Jsoup.connect(url).get();
+		
+		Connection con = Jsoup.connect(url);
+		if(con.response() != null)
+			return null;
+		
+		Document doc = con.get();
+
 		Elements headerrow = doc.select("th");
 		int col = 0;
 		int i = 0;
@@ -235,16 +244,18 @@ public class TescoAPI
 							s = s.replaceAll("\\/", "");
 							s = s.replaceAll("\\(", "");
 							s = s.replaceAll("\\)", "");
-							s = s.replaceAll("g", "");
 							String[] split = s.split("kj");
-							s = split[1].replaceAll("kcal", "");
+							if(split.length > 1)
+								s = split[1].replaceAll("kcal", "");								
+							if (ct.contains("energy") || ct.contains("0"))
+								nt.setEnergy(Float.parseFloat(s));
+							
 						} else
 						{
 							s = s.replaceAll("g", "");
 						}
 
-						if (ct.contains("energy"))
-							nt.setEnergy(Float.parseFloat(s));
+						
 						if (ct.contains("fat"))
 							nt.setFat(Float.parseFloat(s));
 						if (ct.contains("sat"))
