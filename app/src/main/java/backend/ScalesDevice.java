@@ -1,9 +1,11 @@
 package backend;
 
+import com.example.mallocc.caloriecompanion.BluetoothSerial;
+
 public class ScalesDevice
 {
 	float currentWeight;
-	BluetoothComms comms;
+	BluetoothSerial comms;
 	
 	public ScalesDevice()
 	{
@@ -35,5 +37,14 @@ public class ScalesDevice
 	{
 		return true;
 	}
-	
+
+	public BluetoothSerial getBluetoothSerial()
+	{
+		return comms;
+	}
+
+	public void setBluetoothSerial(BluetoothSerial bt)
+	{
+		comms = bt;
+	}
 }

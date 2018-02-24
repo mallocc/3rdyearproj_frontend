@@ -1,5 +1,7 @@
 package backend;
 
+import com.example.mallocc.caloriecompanion.BluetoothSerial;
+
 import java.io.IOException;
 
 import backend.simple.parser.ParseException;
@@ -61,5 +63,13 @@ public class Controller
 		return scales.powerOff();
 	}
 	
-	
+	public BluetoothSerial getBluetoothSerial()
+	{
+		return scales.getBluetoothSerial();
+	}
+
+	public void setBluetoothSerial(BluetoothSerial bt)
+	{
+		scales.setBluetoothSerial(bt);
+	}
 }
