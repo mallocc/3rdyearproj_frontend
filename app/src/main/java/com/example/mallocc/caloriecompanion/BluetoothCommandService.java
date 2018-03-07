@@ -340,6 +340,8 @@ public class BluetoothCommandService {
                     // Send the obtained bytes to the UI Activity
                     mHandler.obtainMessage(MESSAGE_READ, bytes, -1, buffer)
                             .sendToTarget();
+                    Log.e(TAG, "message : " + bytes);
+
                 } catch (IOException e) {
                     Log.e(TAG, "disconnected", e);
                     connectionLost();

@@ -1,16 +1,13 @@
 package backend;
 
-import com.example.mallocc.caloriecompanion.BluetoothSerial;
-
 public class ScalesDevice
 {
-	float currentWeight;
-	BluetoothSerial comms;
+	Float currentWeight;
 	
 	public ScalesDevice()
 	{
 		super();
-		this.currentWeight = 0;
+		this.currentWeight = 0f;
 	}
 
 	public float getCurrentWeight()
@@ -38,13 +35,4 @@ public class ScalesDevice
 		return true;
 	}
 
-	public BluetoothSerial getBluetoothSerial()
-	{
-		return comms;
-	}
-
-	public void setBluetoothSerial(BluetoothSerial bt)
-	{
-		comms = bt;
-	}
 }

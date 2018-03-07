@@ -207,7 +207,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void processText(View view) {
-
+        mCommandService.write(new String("AT").getBytes());
     }
 
 }
