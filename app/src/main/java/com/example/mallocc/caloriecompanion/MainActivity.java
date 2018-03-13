@@ -1,8 +1,10 @@
 package com.example.mallocc.caloriecompanion;
 
+import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
@@ -10,13 +12,17 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.os.StrictMode;
+import android.os.Vibrator;
+import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.TabLayout;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.InputType;
 import android.view.View;
+import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.IOException;
@@ -26,7 +32,16 @@ import backend.Controller;
 import backend.Product;
 import backend.simple.parser.ParseException;
 
+import com.google.android.gms.samples.vision.barcodereader.BarcodeCaptureActivity;
+import com.google.zxing.integration.android.IntentIntegrator;
+import com.google.zxing.integration.android.IntentResult;
+
+import com.google.android.gms.common.api.CommonStatusCodes;
+import com.google.android.gms.vision.barcode.Barcode;
+
 public class MainActivity extends AppCompatActivity {
+
+    //private IntentIntegrator scanner;
 
     private Controller controller;
 
@@ -105,11 +120,15 @@ public class MainActivity extends AppCompatActivity {
                         Environment.DIRECTORY_DOWNLOADS) + "/" +
                         getResources().getString(R.string.filename));
 
+        //reconnectThread();
+
+        //scanner = new IntentIntegrator(this);
+
+        pollWeight();
     }
 
-    @Override
-    protected void onStart() {
-        super.onStart();
+    private void connectToDevice() {
+        Toast.makeText(this, "Attempting to connect to scales...", Toast.LENGTH_SHORT).show();
 
         // If BT is not on, request that it be enabled.
         // setupCommand() will then be called during onActivityResult
@@ -119,35 +138,39 @@ public class MainActivity extends AppCompatActivity {
         }
         // otherwise set up the command service
         else {
-            if (mCommandService==null)
+            if (mCommandService == null)
                 setupCommand();
         }
 
-        //startService();
         // Get a set of currently paired devices
         Set<BluetoothDevice> pairedDevices = mBluetoothAdapter.getBondedDevices();
 
         for (BluetoothDevice device : pairedDevices)
-            if(device.getAddress().equals(EXTRA_DEVICE_ADDRESS))
-            {
+            if (device.getAddress().equals(EXTRA_DEVICE_ADDRESS)) {
                 mCommandService.connect(device);
                 break;
             }
-        // Attempt to connect to the device
 
     }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        connectToDevice();
+
+    }
+
     private void setupCommand() {
         // Initialize the BluetoothChatService to perform bluetooth connections
         mCommandService = new BluetoothCommandService(this, mHandler);
     }
 
-    protected  void startService()
-    {
+    protected void startService() {
         if (mCommandService != null) {
             if (mCommandService.getState() == BluetoothCommandService.STATE_NONE) {
                 mCommandService.start();
                 Toast.makeText(MainActivity.this, mConnectedDeviceName, Toast.LENGTH_SHORT);
-
             }
         }
     }
@@ -159,7 +182,7 @@ public class MainActivity extends AppCompatActivity {
         // Performing this check in onResume() covers the case in which BT was
         // not enabled during onStart(), so we were paused to enable it...
         // onResume() will be called when ACTION_REQUEST_ENABLE activity returns.
-       startService();
+        startService();
 
     }
 
@@ -171,7 +194,25 @@ public class MainActivity extends AppCompatActivity {
             mCommandService.stop();
     }
 
+
+    public void tryReconnect(View view) {
+        connectToDevice();
+    }
+
+    public void showReconnectButton() {
+        pagerAdapter.disableInterface();
+        FloatingActionButton fbt_reconnect = findViewById(R.id.reconnect);
+        fbt_reconnect.setVisibility(View.VISIBLE);
+    }
+
+    public void hideReconnectButton() {
+        pagerAdapter.enableInterface();
+        FloatingActionButton fbt_reconnect = findViewById(R.id.reconnect);
+        fbt_reconnect.setVisibility(View.GONE);
+    }
+
     // The Handler that gets information back from the BluetoothChatService
+    @SuppressLint("HandlerLeak")
     private final Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -180,7 +221,9 @@ public class MainActivity extends AppCompatActivity {
                     switch (msg.arg1) {
                         case BluetoothCommandService.STATE_CONNECTED:
                             Toast.makeText(MainActivity.this, mConnectedDeviceName, Toast.LENGTH_SHORT);
-                            pollWeight();
+
+                            hideReconnectButton();
+
                             break;
                         case BluetoothCommandService.STATE_CONNECTING:
                             Toast.makeText(MainActivity.this, "connecting...", Toast.LENGTH_SHORT);
@@ -188,14 +231,19 @@ public class MainActivity extends AppCompatActivity {
                         case BluetoothCommandService.STATE_LISTEN:
                         case BluetoothCommandService.STATE_NONE:
                             Toast.makeText(MainActivity.this, "not connected.", Toast.LENGTH_SHORT);
+
+                            showReconnectButton();
+
                             break;
                     }
                     break;
                 case BluetoothCommandService.MESSAGE_DEVICE_NAME:
                     // save the connected device's name
                     mConnectedDeviceName = msg.getData().getString(BluetoothCommandService.DEVICE_NAME);
-                    Toast.makeText(getApplicationContext(), "Connected to "
-                            + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
+//                    Toast.makeText(getApplicationContext(), "Connected to "
+//                            + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplicationContext(), "Connected to scales"
+                            , Toast.LENGTH_SHORT).show();
                     break;
                 case BluetoothCommandService.MESSAGE_TOAST:
                     Toast.makeText(getApplicationContext(), msg.getData().getString(BluetoothCommandService.TOAST),
@@ -209,8 +257,17 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private static final int RC_BARCODE_CAPTURE = 9001;
     public void loadCamera(View view) {
+        //scanner.initiateScan();
 
+//        Intent intent = new Intent("com.google.zxing.client.android.SCAN");
+//        intent.putExtra("PRODUCT_MODE", "ONE_D_MODE");
+//        startActivityForResult(intent, 0);
+
+        Intent intent = new Intent(this, BarcodeCaptureActivity.class);
+        intent.putExtra(BarcodeCaptureActivity.AutoFocus, true);
+        startActivityForResult(intent, RC_BARCODE_CAPTURE);
     }
 
     public void processSpeech(View view) {
@@ -234,8 +291,11 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(DialogInterface dialog, int which) {
                 try {
                     Product product = controller.searchProductName(input.getText().toString()).get(0);
-                    controller.setCurrentProduct(product);
-                    Toast.makeText(MainActivity.this, product.toString(), Toast.LENGTH_SHORT).show();
+                    if (product != null) {
+                        controller.setCurrentProduct(product);
+                        Toast.makeText(MainActivity.this, product.toString(), Toast.LENGTH_SHORT).show();
+                        pagerAdapter.update(product);
+                    }
                 } catch (IOException e) {
                     e.printStackTrace();
                 } catch (ParseException e) {
@@ -254,21 +314,21 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public void pollWeight()
-    {
+    public void pollWeight() {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                while(true) {
-                    if(mCommandService!=null)
-                    {
-                        pagerAdapter.update((int)mCommandService.weight.weight + " g",
-                                ((int)controller.getCurrentCalories(mCommandService.weight.weight) - (int)controller.getOffsetCalories())  + " kcal",
-                                (int)controller.getCurrentCalories(mCommandService.weight.weight) + " kcal",
-                                (controller.getCurrentProduct() != null ? controller.getCurrentProduct().getName() : ""));
+                while (true) {
+                    if (mCommandService != null) {
+                        pagerAdapter.update(
+                                (int) mCommandService.weight.weight + " g",
+                                ((int) controller.getCurrentCalories(mCommandService.weight.weight) - (int) controller.getOffsetCalories()) + " kcal",
+                                (int) controller.getCurrentCalories(mCommandService.weight.weight) + " kcal",
+                                controller.getCurrentProduct()
+                        );
                     }
                     try {
-                        Thread.sleep(200);
+                        Thread.sleep(150);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -278,13 +338,43 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    public void resetWeight(View view)
-    {
+    public void resetWeight(View view) {
         controller.resetWeight();
     }
 
-    public void resetScales(View view)
-    {
+    public void resetScales(View view) {
         controller.resetScales();
+    }
+
+
+    //Getting the scan results
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+
+        if (requestCode == RC_BARCODE_CAPTURE) {
+            if (resultCode == CommonStatusCodes.SUCCESS) {
+                if (data != null) {
+                    Barcode barcode = data.getParcelableExtra(BarcodeCaptureActivity.BarcodeObject);
+                    //If qr code has data, set clubid as qrcode
+                    try {
+                        Product product = controller.searchProductBarcode(barcode.displayValue);
+                        if (product != null) {
+                            controller.setCurrentProduct(product);
+                            Toast.makeText(MainActivity.this, product.toString(), Toast.LENGTH_SHORT).show();
+                            pagerAdapter.update(product);
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } catch (ParseException e) {
+                        e.printStackTrace();
+                    }
+                } else {
+                }
+            } else {
+            }
+        }
+        else {
+            super.onActivityResult(requestCode, resultCode, data);
+        }
     }
 }

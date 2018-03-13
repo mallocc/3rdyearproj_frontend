@@ -7,6 +7,8 @@ import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import backend.Product;
@@ -50,5 +52,29 @@ public class TabFragScales extends Fragment
                 }
             });
         }
+    }
+    public void interfaceState(final boolean state)
+    {
+        Activity a = getActivity();
+        if(a != null) {
+            a.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    LinearLayout holder = getActivity().findViewById(R.id.fragment_holder);
+                    holder.setAlpha(state ? 1.0f : 0.3f);
+                    holder.setClickable(state);
+                }
+            });
+        }
+    }
+
+    public void disableInterface()
+    {
+        interfaceState(false);
+    }
+
+    public void enableInterface()
+    {
+        interfaceState(true);
     }
 }

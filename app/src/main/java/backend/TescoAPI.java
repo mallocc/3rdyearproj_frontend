@@ -10,6 +10,7 @@ import java.util.Iterator;
 
 import org.jsoup.Connection;
 import org.jsoup.Connection.Response;
+import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -238,11 +239,19 @@ public class TescoAPI
 		// form request
 		String url = "https://www.tesco.com/groceries/en-GB/products/" + number;
 
-		Connection con = Jsoup.connect(url);
-		if (con.response() == null)
+		Connection con = null;
+		Document doc = null;
+		try {
+			con = Jsoup.connect(url);
+			if (con.response() == null)
+				return null;
+			doc = con.get();
+			if (doc == null)
+				return null;
+		}catch (HttpStatusException e)
+		{
 			return null;
-
-		Document doc = con.get();
+		}
 
 		Elements headerrow = doc.select("th");
 		int col = 0;
