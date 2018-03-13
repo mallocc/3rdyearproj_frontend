@@ -7,14 +7,20 @@ import android.content.Context;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.os.Parcel;
 import android.util.Log;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.UUID;
 
 public class BluetoothCommandService {
+
+    public volatile WeightObject weight = new WeightObject();
+
     // Debugging
     private static final String TAG = "BluetoothCommandService";
     private static final boolean D = true;
@@ -55,6 +61,11 @@ public class BluetoothCommandService {
     public static final String DEVICE_NAME = "newnam";
     public static final String TOAST = "toast";
 
+
+    public Handler getmHandler()
+    {
+        return mHandler;
+    }
 
     /**
      * Constructor. Prepares a new BluetoothChat session.
@@ -330,17 +341,20 @@ public class BluetoothCommandService {
         public void run() {
             Log.i(TAG, "BEGIN mConnectedThread");
             byte[] buffer = new byte[1024];
-
+            String message = "";
+            BufferedReader reader = new BufferedReader(new InputStreamReader(mmInStream));
             // Keep listening to the InputStream while connected
             while (true) {
                 try {
                     // Read from the InputStream
-                    int bytes = mmInStream.read(buffer);
+                    //int bytes = mmInStream.read(buffer);
 
                     // Send the obtained bytes to the UI Activity
-                    mHandler.obtainMessage(MESSAGE_READ, bytes, -1, buffer)
-                            .sendToTarget();
-                    Log.e(TAG, "message : " + bytes);
+
+                    message = reader.readLine();
+                    weight.setRaw(message);
+                    Log.e(TAG, "message : " + message);
+                    //message += (char)bytes;
 
                 } catch (IOException e) {
                     Log.e(TAG, "disconnected", e);
@@ -348,6 +362,7 @@ public class BluetoothCommandService {
                     break;
                 }
             }
+
         }
 
         /**

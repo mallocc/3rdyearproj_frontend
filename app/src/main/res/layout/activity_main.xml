@@ -10,9 +10,11 @@
         android:id="@+id/tab_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="?attr/colorPrimary"
+
         app:tabTextAppearance="@style/MyCustomTabText"
-        android:theme="@style/ActionBar"/>
+        android:theme="@style/ActionBar"
+        android:background="@drawable/myrect"
+        android:elevation="10dp"/>
 
     <android.support.v4.view.ViewPager
         android:id="@+id/pager"
@@ -33,7 +35,6 @@
             android:id="@+id/scanBarcode"
             android:layout_width="64dp"
             android:layout_height="64dp"
-            android:layout_alignParentBottom="true"
             android:layout_gravity="bottom|center"
             android:onClick="loadCamera"
             android:src="@drawable/barcode_48dp"
@@ -42,7 +43,6 @@
             android:id="@+id/speechSearch"
             android:layout_width="64dp"
             android:layout_height="64dp"
-            android:layout_alignParentBottom="true"
             android:layout_gravity="bottom|end"
             android:onClick="processSpeech"
             android:src="@android:drawable/ic_btn_speak_now"
@@ -51,7 +51,6 @@
             android:id="@+id/textSearch"
             android:layout_width="64dp"
             android:layout_height="64dp"
-            android:layout_alignParentBottom="true"
             android:layout_gravity="bottom"
             android:onClick="processText"
             android:src="@android:drawable/ic_search_category_default"

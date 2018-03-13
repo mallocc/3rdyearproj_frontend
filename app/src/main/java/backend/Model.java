@@ -19,6 +19,8 @@ public class Model
 	ArrayList<Product> localProducts;
 	String databasePath;
 
+	float offsetCalories = 0f;
+
 	Model(String databasePath)
 	{
 		this.databasePath = databasePath;		
@@ -30,6 +32,7 @@ public class Model
 		loadDatabase(databasePath);
 		
 	}
+
 
 	private void loadDatabase(String file)
 	{
@@ -86,7 +89,25 @@ public class Model
 
 	public float getCurrentCalories(float weight)
 	{
-		return (currentCalories = weight * currentProduct.getNutrition().getEnergy()/100.0f);
+		if(currentProduct!=null && currentProduct.getNutrition() != null)
+			return (currentCalories = weight * currentProduct.getNutrition().getEnergy()/100.0f) + offsetCalories;
+		return 0f;
+	}
+
+	public void resetWeight()
+	{
+		offsetCalories += currentCalories;
+	}
+
+	public void resetScales()
+	{
+		currentCalories = 0f;
+		offsetCalories = 0f;
+	}
+
+	public float getOffsetCalories()
+	{
+		return offsetCalories;
 	}
 
 	public ArrayList<Product> getSessionProducts()

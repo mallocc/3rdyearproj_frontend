@@ -1,24 +1,30 @@
 package com.example.mallocc.caloriecompanion;
 
+import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
+import android.os.StrictMode;
 import android.support.design.widget.TabLayout;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
+import android.text.InputType;
 import android.view.View;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import java.io.IOException;
 import java.util.Set;
 
 import backend.Controller;
+import backend.Product;
+import backend.simple.parser.ParseException;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -35,12 +41,11 @@ public class MainActivity extends AppCompatActivity {
     // Local Bluetooth adapter
     private BluetoothAdapter mBluetoothAdapter = null;
     // Member object for Bluetooth Command Service
-    private BluetoothCommandService mCommandService = null;
+    private volatile BluetoothCommandService mCommandService = null;
 
-    private void init() {
+    private volatile WeightObject weight_object;
 
-    }
-
+    private PagerAdapter pagerAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,6 +66,7 @@ public class MainActivity extends AppCompatActivity {
         final ViewPager viewPager = (ViewPager) findViewById(R.id.pager);
         final PagerAdapter adapter = new PagerAdapter
                 (getSupportFragmentManager(), tabLayout.getTabCount());
+        pagerAdapter = adapter;
         viewPager.setAdapter(adapter);
         viewPager.addOnPageChangeListener(new TabLayout.TabLayoutOnPageChangeListener(tabLayout));
         tabLayout.setOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
@@ -81,12 +87,6 @@ public class MainActivity extends AppCompatActivity {
         });
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
-
- /*       controller = new Controller(
-                Environment.getExternalStoragePublicDirectory(
-                        Environment.DIRECTORY_DOWNLOADS) + "/" +
-                        getResources().getString(R.string.filename));*/
-
         // Get local Bluetooth adapter
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
@@ -96,6 +96,15 @@ public class MainActivity extends AppCompatActivity {
             finish();
             return;
         }
+
+        StrictMode.ThreadPolicy policy = new StrictMode.ThreadPolicy.Builder().permitAll().build();
+        StrictMode.setThreadPolicy(policy);
+
+        controller = new Controller(
+                Environment.getExternalStoragePublicDirectory(
+                        Environment.DIRECTORY_DOWNLOADS) + "/" +
+                        getResources().getString(R.string.filename));
+
     }
 
     @Override
@@ -151,6 +160,7 @@ public class MainActivity extends AppCompatActivity {
         // not enabled during onStart(), so we were paused to enable it...
         // onResume() will be called when ACTION_REQUEST_ENABLE activity returns.
        startService();
+
     }
 
     @Override
@@ -170,6 +180,7 @@ public class MainActivity extends AppCompatActivity {
                     switch (msg.arg1) {
                         case BluetoothCommandService.STATE_CONNECTED:
                             Toast.makeText(MainActivity.this, mConnectedDeviceName, Toast.LENGTH_SHORT);
+                            pollWeight();
                             break;
                         case BluetoothCommandService.STATE_CONNECTING:
                             Toast.makeText(MainActivity.this, "connecting...", Toast.LENGTH_SHORT);
@@ -207,7 +218,73 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void processText(View view) {
-        mCommandService.write(new String("AT").getBytes());
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Please enter product name to search:");
+
+// Set up the input
+        final EditText input = new EditText(this);
+// Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
+        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_AUTO_CORRECT | InputType.TYPE_TEXT_FLAG_AUTO_COMPLETE);
+        builder.setView(input);
+
+// Set up the buttons
+        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                try {
+                    Product product = controller.searchProductName(input.getText().toString()).get(0);
+                    controller.setCurrentProduct(product);
+                    Toast.makeText(MainActivity.this, product.toString(), Toast.LENGTH_SHORT).show();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (ParseException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+
+        builder.show();
+
     }
 
+    public void pollWeight()
+    {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while(true) {
+                    if(mCommandService!=null)
+                    {
+                        pagerAdapter.update((int)mCommandService.weight.weight + " g",
+                                ((int)controller.getCurrentCalories(mCommandService.weight.weight) - (int)controller.getOffsetCalories())  + " kcal",
+                                (int)controller.getCurrentCalories(mCommandService.weight.weight) + " kcal",
+                                (controller.getCurrentProduct() != null ? controller.getCurrentProduct().getName() : ""));
+                    }
+                    try {
+                        Thread.sleep(200);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }).start();
+
+    }
+
+    public void resetWeight(View view)
+    {
+        controller.resetWeight();
+    }
+
+    public void resetScales(View view)
+    {
+        controller.resetScales();
+    }
 }

@@ -2,7 +2,7 @@ package backend;
 
 public class ScalesDevice
 {
-	Float currentWeight;
+	float currentWeight;
 	
 	public ScalesDevice()
 	{

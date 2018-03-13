@@ -24,11 +24,11 @@ public class TescoAPI
 {
 	static String TESCO_PRIVATE_KEY = "01516e1ca7814d9ea646b1f723556cef";
 
-	public ArrayList<Product> searchName(String name) throws IOException, ParseException
+	public ArrayList<Product> searchName(String name, int results) throws IOException, ParseException
 	{
 		// form request
 		String query = name.replaceAll(" ", "+");
-		String url = "https://dev.tescolabs.com/grocery/products/?query=" + query + "&offset=0&limit=5";
+		String url = "https://dev.tescolabs.com/grocery/products/?query=" + query + "&offset=0&limit=" + results;
 		URL obj = new URL(url);
 		HttpURLConnection con = (HttpURLConnection) obj.openConnection();
 		con.setRequestMethod("GET");
@@ -66,35 +66,51 @@ public class TescoAPI
 			String desc = j.get("name").toString();
 			Product p = getTPNC(tpnc);
 			if (p.getNutrition() != null)
+			{
+				System.out.println("Nutrition table found");
 				ps.add(p);
+			}
 			else
 			{
-				p.setNutrition(scapeTPNC(tpnc));
+				System.out.println("Nutrition table not found");
+				NutritionTable nt = scapeTPNC(tpnc);
+				if(nt !=  null)
+					System.out.println("Nutrition table scaped");
+				p.setNutrition(nt);
 				ps.add(p);
 			}
 		}
 
 		return ps;
 	}
-	
+
 	public Product searchBarcode(String barcode) throws IOException, ParseException
 	{
 		Product p = null;
-		
+
 		p = getGTIN(barcode);
-		//System.out.println(p);
-		if(p == null)
+		// System.out.println(p);
+		if (p == null)
 			return null;
-		else if(p.getNutrition() == null)
+		else if (p.getNutrition() == null)
 			p.setNutrition(scapeTPNC(p.tpnc));
 		return p;
-		//use getGTIN
-		//if product is null then ask to search by name
-		//if table is null then scrape tesco using tpnc (not guaranteed to be correct if it isnt food)
-		//else it should return a product with a table
+		// use getGTIN
+		// if product is null then ask to search by name
+		// if table is null then scrape tesco using tpnc (not guaranteed to be
+		// correct if it isnt food)
+		// else it should return a product with a table
 
 	}
 
+	private String getNutrient(JSONObject j)
+	{
+		Object o = j.get("valuePer100");
+		if(o!=null)
+			return o.toString();
+		return null;
+	}
+	
 	private Product getJSONProduct(String url) throws ParseException, IOException
 	{
 		// form request
@@ -111,7 +127,7 @@ public class TescoAPI
 			response.append(inputLine);
 		in.close();
 		String s = response.toString();
-
+		System.out.println(s);
 		// parse to JSON form
 		JSONParser parser = new JSONParser();
 		JSONObject jsonObject = (JSONObject) parser.parse(s);
@@ -128,7 +144,7 @@ public class TescoAPI
 			// get barcode_24dp of product
 			String gtin = j.get("gtin").toString();
 			String tpnc = j.get("tpnc").toString();
-			
+
 			// if there is a calcNutrition section
 			if (j.get("calcNutrition") != null)
 			{
@@ -146,36 +162,50 @@ public class TescoAPI
 
 				// set all of the nutrients into the table
 				j = (JSONObject) itr.next();
-				s = j.get("valuePer100").toString();
-				nt.setFat(Float.parseFloat(s));
+				s = getNutrient(j);
+				if (s != null)
+				{
+					String[] ss = s.split("kj");
+					if (ss.length > 1)
+						nt.setEnergy(Float.parseFloat(ss[1]));
+					else
+						nt.setEnergy(Float.parseFloat(s));
+				}
 
 				j = (JSONObject) itr.next();
-				s = j.get("valuePer100").toString();
-				nt.setFat(Float.parseFloat(s));
+				s = getNutrient(j);
+				if (s != null)
+					nt.setFat(Float.parseFloat(s));
 
 				j = (JSONObject) itr.next();
-				s = j.get("valuePer100").toString();
-				nt.setSats(Float.parseFloat(s));
+				s = getNutrient(j);
+				if (s != null)
+					nt.setSats(Float.parseFloat(s));
 
 				j = (JSONObject) itr.next();
-				s = j.get("valuePer100").toString();
-				nt.setCarbs(Float.parseFloat(s));
+				s = getNutrient(j);
+				if (s != null)
+					nt.setCarbs(Float.parseFloat(s));
 
 				j = (JSONObject) itr.next();
-				s = j.get("valuePer100").toString();
-				nt.setSugars(Float.parseFloat(s));
+				s = getNutrient(j);
+				if (s != null)
+					nt.setSugars(Float.parseFloat(s));
 
 				j = (JSONObject) itr.next();
-				s = j.get("valuePer100").toString();
-				nt.setFibre(Float.parseFloat(s));
+				s = getNutrient(j);
+				if (s != null)
+					nt.setFibre(Float.parseFloat(s));
 
 				j = (JSONObject) itr.next();
-				s = j.get("valuePer100").toString();
-				nt.setProtein(Float.parseFloat(s));
+				s = getNutrient(j);
+				if (s != null)
+					nt.setProtein(Float.parseFloat(s));
 
 				j = (JSONObject) itr.next();
-				s = j.get("valuePer100").toString();
-				nt.setSalt(Float.parseFloat(s));
+				s = getNutrient(j);
+				if (s != null)
+					nt.setSalt(Float.parseFloat(s));
 
 				// return new product
 				return new Product(name, tpnc, gtin, nt);
@@ -185,7 +215,7 @@ public class TescoAPI
 		return null;
 	}
 
-	private  Product getTPNC(String number) throws IOException, ParseException
+	private Product getTPNC(String number) throws IOException, ParseException
 	{
 		// form request
 		String url = "https://dev.tescolabs.com/product/?tpnc=" + number;
@@ -193,25 +223,25 @@ public class TescoAPI
 		return getJSONProduct(url);
 	}
 
-	private  Product getGTIN(String number) throws IOException, ParseException
+	private Product getGTIN(String number) throws IOException, ParseException
 	{
 		// form request
 		String url = "https://dev.tescolabs.com/product/?gtin=" + number;
 
 		return getJSONProduct(url);
 	}
-	
+
 	private NutritionTable scapeTPNC(String number) throws IOException
 	{
 		NutritionTable nt = new NutritionTable();
-		
+
 		// form request
 		String url = "https://www.tesco.com/groceries/en-GB/products/" + number;
-		
+
 		Connection con = Jsoup.connect(url);
-		if(con.response() != null)
+		if (con.response() == null)
 			return null;
-		
+
 		Document doc = con.get();
 
 		Elements headerrow = doc.select("th");
@@ -245,17 +275,16 @@ public class TescoAPI
 							s = s.replaceAll("\\(", "");
 							s = s.replaceAll("\\)", "");
 							String[] split = s.split("kj");
-							if(split.length > 1)
-								s = split[1].replaceAll("kcal", "");								
+							if (split.length > 1)
+								nt.setEnergy(Float.parseFloat(split[1].replaceAll("kcal", "")));
 							if (ct.contains("energy") || ct.contains("0"))
 								nt.setEnergy(Float.parseFloat(s));
-							
+
 						} else
 						{
 							s = s.replaceAll("g", "");
 						}
 
-						
 						if (ct.contains("fat"))
 							nt.setFat(Float.parseFloat(s));
 						if (ct.contains("sat"))

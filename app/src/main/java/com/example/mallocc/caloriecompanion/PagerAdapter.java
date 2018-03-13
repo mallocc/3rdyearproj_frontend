@@ -7,6 +7,9 @@ import android.support.v4.app.FragmentStatePagerAdapter;
 public class PagerAdapter extends FragmentStatePagerAdapter {
     int mNumOfTabs;
 
+    TabFragScales tab1= new TabFragScales();
+    TabFragNutrition tab2 = new TabFragNutrition();
+
     public PagerAdapter(FragmentManager fm, int NumOfTabs) {
         super(fm);
         this.mNumOfTabs = NumOfTabs;
@@ -17,10 +20,9 @@ public class PagerAdapter extends FragmentStatePagerAdapter {
 
         switch (position) {
             case 0:
-                TabFragScales tab1 = new TabFragScales();
                 return tab1;
             case 1:
-                TabFragNutrition tab2 = new TabFragNutrition();
+
                 return tab2;
             default:
                 return null;
@@ -30,5 +32,10 @@ public class PagerAdapter extends FragmentStatePagerAdapter {
     @Override
     public int getCount() {
         return mNumOfTabs;
+    }
+
+    public void update(String weight, String calories, String offsetCalories, String name)
+    {
+        tab1.update(weight,calories, offsetCalories, name);
     }
 }

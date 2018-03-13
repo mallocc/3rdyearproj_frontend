@@ -1,6 +1,7 @@
 package backend;
 
 import java.io.IOException;
+import java.util.ArrayList;
 
 import backend.simple.parser.ParseException;
 
@@ -9,14 +10,12 @@ public class Controller
 	private Model model;
 	private BarcodeReader reader;
 	private TescoAPI cloud;
-	private ScalesDevice scales;
 	
 	public Controller(String databasePath)
 	{
 		model = new Model(databasePath);
 		reader = new BarcodeReader();
 		cloud = new TescoAPI();
-		scales = new ScalesDevice();
 	}
 	
 	void scanProduct() throws IOException, ParseException
@@ -40,25 +39,41 @@ public class Controller
 	{
 		return model.getProductName(name);
 	}
-	
-	boolean resetWeight()
-	{
-		return scales.reset();
+
+	public ArrayList<Product> searchProductName(String name) throws IOException, ParseException {
+		return cloud.searchName(name,1);
 	}
-	
-	float getCurrentWeight()
-	{
-		return scales.getCurrentWeight();
-	}
-	
-	boolean disconnectScales()
-	{
-		return scales.disconnect();
-	}
-	
-	boolean powerOff()
-	{
-		return scales.powerOff();
+	public Product searchProductBarcode(String barcode) throws IOException, ParseException {
+		return cloud.searchBarcode(barcode);
 	}
 
+	public void setCurrentProduct(Product product)
+	{
+		model.setCurrentProduct(product);
+	}
+
+	public Product getCurrentProduct()
+	{
+		return model.getCurrentProduct();
+	}
+
+	public float getCurrentCalories(float weight)
+	{
+		return model.getCurrentCalories(weight);
+	}
+
+	public float getOffsetCalories()
+	{
+		return model.getOffsetCalories();
+	}
+
+	public void resetWeight()
+	{
+		model.resetWeight();
+	}
+
+	public void resetScales()
+	{
+		model.resetScales();
+	}
 }
