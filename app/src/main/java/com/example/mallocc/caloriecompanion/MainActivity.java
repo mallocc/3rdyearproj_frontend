@@ -2,6 +2,7 @@ package com.example.mallocc.caloriecompanion;
 
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
+import android.app.Dialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.Context;
@@ -22,6 +23,7 @@ import android.text.InputType;
 import android.view.View;
 import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -274,6 +276,11 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private void showProductList()
+    {
+
+    }
+
     public void processText(View view) {
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -295,6 +302,8 @@ public class MainActivity extends AppCompatActivity {
                         controller.setCurrentProduct(product);
                         Toast.makeText(MainActivity.this, product.toString(), Toast.LENGTH_SHORT).show();
                         pagerAdapter.update(product);
+
+
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
