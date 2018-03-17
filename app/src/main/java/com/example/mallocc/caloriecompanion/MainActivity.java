@@ -2,10 +2,8 @@ package com.example.mallocc.caloriecompanion;
 
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
-import android.app.Dialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
@@ -13,18 +11,16 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.os.StrictMode;
-import android.os.Vibrator;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.TabLayout;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.InputType;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
-import android.widget.CompoundButton;
 import android.widget.EditText;
-import android.widget.ListView;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.IOException;
@@ -35,8 +31,6 @@ import backend.Product;
 import backend.simple.parser.ParseException;
 
 import com.google.android.gms.samples.vision.barcodereader.BarcodeCaptureActivity;
-import com.google.zxing.integration.android.IntentIntegrator;
-import com.google.zxing.integration.android.IntentResult;
 
 import com.google.android.gms.common.api.CommonStatusCodes;
 import com.google.android.gms.vision.barcode.Barcode;
@@ -70,11 +64,6 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         android.support.v7.app.ActionBar actionBar = getSupportActionBar();
 
-        if (false)
-            if (actionBar != null) {
-                actionBar.setHomeButtonEnabled(true);
-                actionBar.setDisplayHomeAsUpEnabled(true);
-            }
         TabLayout tabLayout = (TabLayout) findViewById(R.id.tab_layout);
         tabLayout.addTab(tabLayout.newTab().setText("scales"));
         tabLayout.addTab(tabLayout.newTab().setText("nutrition"));
@@ -127,6 +116,57 @@ public class MainActivity extends AppCompatActivity {
         //scanner = new IntentIntegrator(this);
 
         pollWeight();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu)
+    {
+        getMenuInflater().inflate(R.menu.menu, menu);
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item)
+    {
+        switch (item.getItemId())
+        {
+            case android.R.id.home:
+                //Write your logic here
+                this.finish();
+                return true;
+            case R.id.menu_item_1:
+                loadSettings(item);
+                return true;
+            case R.id.menu_item_2:
+                loadHelp(item);
+                return true;
+            case R.id.menu_item_3:
+                loadAbout(item);
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    private boolean loadSettings(MenuItem item)
+    {
+        Intent intent = new Intent(this, SettingsActivity.class);
+        startActivity(intent);
+        return true;
+    }
+
+    private boolean loadHelp(MenuItem item)
+    {
+        Intent intent = new Intent(this, HelpActivity.class);
+        startActivity(intent);
+        return true;
+    }
+
+    private boolean loadAbout(MenuItem item)
+    {
+        Intent intent = new Intent(this, AboutActivity.class);
+        startActivity(intent);
+        return true;
     }
 
     private void connectToDevice() {
@@ -330,7 +370,7 @@ public class MainActivity extends AppCompatActivity {
                 while (true) {
                     if (mCommandService != null) {
                         pagerAdapter.update(
-                                (int) mCommandService.weight.weight + " g",
+                                mCommandService.weight.getWeight(),
                                 ((int) controller.getCurrentCalories(mCommandService.weight.weight) - (int) controller.getOffsetCalories()) + " kcal",
                                 (int) controller.getCurrentCalories(mCommandService.weight.weight) + " kcal",
                                 controller.getCurrentProduct()

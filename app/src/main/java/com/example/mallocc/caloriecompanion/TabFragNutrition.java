@@ -49,19 +49,19 @@ public class TabFragNutrition extends Fragment {
                         txt.setText(product.getNutrition().getEnergy() + " kcal");
 
                         txt = getActivity().findViewById(R.id.text_fat);
-                        txt.setText(product.getNutrition().getFat() + " g");
+                        txt.setText(WeightObject.toString(product.getNutrition().getFat()));
                         txt = getActivity().findViewById(R.id.text_sat);
-                        txt.setText(product.getNutrition().getSats() + " g");
+                        txt.setText(WeightObject.toString(product.getNutrition().getSats()));
                         txt = getActivity().findViewById(R.id.text_carbs);
-                        txt.setText(product.getNutrition().getCarbs() + " g");
+                        txt.setText(WeightObject.toString(product.getNutrition().getCarbs()));
                         txt = getActivity().findViewById(R.id.text_fibre);
-                        txt.setText(product.getNutrition().getFibre() + " g");
+                        txt.setText(WeightObject.toString(product.getNutrition().getFibre()));
                         txt = getActivity().findViewById(R.id.text_sugar);
-                        txt.setText(product.getNutrition().getSugars() + " g");
+                        txt.setText(WeightObject.toString(product.getNutrition().getSugars()));
                         txt = getActivity().findViewById(R.id.text_protein);
-                        txt.setText(product.getNutrition().getProtein() + " g");
+                        txt.setText(WeightObject.toString(product.getNutrition().getProtein()));
                         txt = getActivity().findViewById(R.id.text_salt);
-                        txt.setText(product.getNutrition().getSalt() + " g");
+                        txt.setText(WeightObject.toString(product.getNutrition().getSalt()));
                     }
                 }
             });

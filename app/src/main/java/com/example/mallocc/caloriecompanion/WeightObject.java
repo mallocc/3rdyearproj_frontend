@@ -1,8 +1,5 @@
 package com.example.mallocc.caloriecompanion;
 
-import android.os.Parcel;
-import android.os.Parcelable;
-
 /**
  * Created by hercu on 12-Mar-18.
  */
@@ -16,5 +13,16 @@ public class WeightObject{
     {
         weight = Float.parseFloat(raw);
         this.raw = raw;
+    }
+
+    public String getWeight()
+    {
+        return toString(weight);
+    }
+
+    public static String toString(float weight_grams)
+    {
+        return (int)(weight_grams / (GlobalSettings.units == GlobalSettings.UNITS_KILOS ? 1000f : 1f))
+                + (GlobalSettings.units == GlobalSettings.UNITS_KILOS ? " kg" : " g");
     }
 }
