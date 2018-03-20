@@ -18,7 +18,7 @@
             android:layout_height="64dp"
             android:layout_gravity="bottom|center"
             android:layout_marginBottom="50dp"
-            android:onClick="loadCamera"
+            android:onClick="startScanner"
             android:src="@drawable/barcode_48dp"
             android:tint="@color/white"
             android:visibility="gone" />

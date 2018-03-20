@@ -6,15 +6,28 @@ package com.example.mallocc.caloriecompanion;
 
 public class GlobalSettings {
 
-    static public String unitsNames[] = {
+    static public final String unitsNames[] = {
             "Grams",
             "Kilos"
     };
 
 
-    static public int UNITS_GRAMS = 0;
-    static public int UNITS_KILOS = 1;
+
+    static public final int UNITS_GRAMS = 0;
+    static public final int UNITS_KILOS = 1;
 
     static public int units = UNITS_GRAMS;
+
+    static public final String searchQuerySizes[] = {
+            "1",
+            "5",
+            "10"
+    };
+
+    static public final int SEARCH_QUERY_SIZE_1 = 0;
+    static public final int SEARCH_QUERY_SIZE_5 = 1;
+    static public final int SEARCH_QUERY_SIZE_10 = 2;
+
+    static public int searchQuerySize = SEARCH_QUERY_SIZE_1;
 
 }

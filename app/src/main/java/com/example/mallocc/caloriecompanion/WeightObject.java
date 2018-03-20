@@ -22,7 +22,13 @@ public class WeightObject{
 
     public static String toString(float weight_grams)
     {
-        return (int)(weight_grams / (GlobalSettings.units == GlobalSettings.UNITS_KILOS ? 1000f : 1f))
-                + (GlobalSettings.units == GlobalSettings.UNITS_KILOS ? " kg" : " g");
+        switch  (GlobalSettings.units)
+        {
+            case GlobalSettings.UNITS_KILOS:
+                return (int)weight_grams / 1000f + " kg";
+            case GlobalSettings.UNITS_GRAMS:
+            default:
+                return (int)weight_grams + " g";
+        }
     }
 }

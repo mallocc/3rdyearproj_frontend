@@ -45,7 +45,7 @@
             android:layout_width="64dp"
             android:layout_height="64dp"
             android:layout_gravity="bottom|center"
-            android:onClick="loadCamera"
+            android:onClick="startScanner"
             android:src="@drawable/barcode_48dp"
             android:tint="@color/white" />
         <android.support.design.widget.FloatingActionButton

@@ -1,5 +1,7 @@
 package backend;
 
+import android.widget.ArrayAdapter;
+
 import java.io.IOException;
 import java.util.ArrayList;
 
@@ -7,9 +9,21 @@ import backend.simple.parser.ParseException;
 
 public class Controller
 {
+	// Create a singleton of Controller
+	private static Controller instance;
+	public static Controller getInstance(String databasePath) {
+		if (instance == null) {
+			instance = new Controller(databasePath);
+		}
+		return instance;
+	}
+
+
 	private Model model;
 	private BarcodeReader reader;
 	private TescoAPI cloud;
+
+	private ArrayList<Product> lastSearchedProducts = new ArrayList<>();
 	
 	public Controller(String databasePath)
 	{
@@ -40,8 +54,8 @@ public class Controller
 		return model.getProductName(name);
 	}
 
-	public ArrayList<Product> searchProductName(String name) throws IOException, ParseException {
-		return cloud.searchName(name,1);
+	public ArrayList<Product> searchProductName(String name, int querySize) throws IOException, ParseException {
+		return cloud.searchName(name,querySize);
 	}
 	public Product searchProductBarcode(String barcode) throws IOException, ParseException {
 		return cloud.searchBarcode(barcode);
@@ -75,5 +89,14 @@ public class Controller
 	public void resetScales()
 	{
 		model.resetScales();
+	}
+
+
+	public ArrayList<Product> getLastSearchedProducts() {
+		return lastSearchedProducts;
+	}
+
+	public void setLastSearchedProducts(ArrayList<Product> lastSearchedProducts) {
+		this.lastSearchedProducts = lastSearchedProducts;
 	}
 }

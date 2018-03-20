@@ -111,7 +111,7 @@ public class TescoAPI
 			return o.toString();
 		return null;
 	}
-	
+
 	private Product getJSONProduct(String url) throws ParseException, IOException
 	{
 		// form request
@@ -231,7 +231,6 @@ public class TescoAPI
 
 		return getJSONProduct(url);
 	}
-
 	private NutritionTable scapeTPNC(String number) throws IOException
 	{
 		NutritionTable nt = new NutritionTable();
@@ -266,6 +265,7 @@ public class TescoAPI
 		Elements rows = doc.select("tr");
 		for (Element row : rows)
 		{
+			System.out.println(row.toString());
 			i = 0;
 			Elements columns = row.select("td");
 			for (Element c : columns)
@@ -277,7 +277,6 @@ public class TescoAPI
 					{
 						String s = column.text();
 						s = s.toLowerCase();
-						s = s.replaceAll("-", "0");
 						if (s.contains("kcal"))
 						{
 							s = s.replaceAll("\\/", "");
@@ -286,8 +285,8 @@ public class TescoAPI
 							String[] split = s.split("kj");
 							if (split.length > 1)
 								nt.setEnergy(Float.parseFloat(split[1].replaceAll("kcal", "")));
-							if (ct.contains("energy") || ct.contains("0"))
-								nt.setEnergy(Float.parseFloat(s));
+							else if (ct.contains("energy") || ct.contains("-"))
+								nt.setEnergy(Float.parseFloat(s.replaceAll("kcal", "")));
 
 						} else
 						{

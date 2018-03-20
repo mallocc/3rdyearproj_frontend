@@ -23,6 +23,7 @@ public class SettingsActivity extends AppCompatActivity {
         }
         actionBar.setTitle("Settings");
 
+        // units spinner
         Spinner spinner = findViewById(R.id.units_spinner);
         ArrayAdapter<String> spinnerArrayAdapter = new ArrayAdapter<String>
                 (this, android.R.layout.simple_spinner_item,
@@ -31,6 +32,17 @@ public class SettingsActivity extends AppCompatActivity {
                 .simple_spinner_dropdown_item);
         spinner.setAdapter(spinnerArrayAdapter);
         spinner.setSelection(GlobalSettings.units);
+
+
+        // search query size spinner
+        spinner = findViewById(R.id.search_query_size_spinner);
+        spinnerArrayAdapter = new ArrayAdapter<String>
+                (this, android.R.layout.simple_spinner_item,
+                        GlobalSettings.searchQuerySizes); //selected item will look like a spinner set from XML
+        spinnerArrayAdapter.setDropDownViewResource(android.R.layout
+                .simple_spinner_dropdown_item);
+        spinner.setAdapter(spinnerArrayAdapter);
+        spinner.setSelection(GlobalSettings.searchQuerySize);
     }
 
     @Override
@@ -69,6 +81,10 @@ public class SettingsActivity extends AppCompatActivity {
         Spinner spinner = findViewById(R.id.units_spinner);
 
         GlobalSettings.units = (int)spinner.getSelectedItemId();
+
+        spinner = findViewById(R.id.search_query_size_spinner);
+
+        GlobalSettings.searchQuerySize = (int)spinner.getSelectedItemId();
 
         finish();
     }
