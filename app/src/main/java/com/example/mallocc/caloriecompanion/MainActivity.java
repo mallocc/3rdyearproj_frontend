@@ -549,31 +549,32 @@ public class MainActivity extends AppCompatActivity {
         final ItemAdapter adapter = new ItemAdapter(this, products);
 
         for(final Product product : products)
-            if(product.getImageUrl() != null)
-                new AsyncTask<String, Void, Bitmap>(){
-                    @Override
-                    protected Bitmap doInBackground(String... strings) {
-                        return  FileHandler.getBitmapUrl(strings[0]);
-                    }
+            if(!FileHandler.productImageExists(product, this))
+                if(product.getImageUrl() != null)
+                    new AsyncTask<String, Void, Bitmap>(){
+                        @Override
+                        protected Bitmap doInBackground(String... strings) {
+                            return  FileHandler.getBitmapUrl(strings[0]);
+                        }
 
-                    @Override
-                    protected void onPreExecute() {
-                        super.onPreExecute();
-                    }
+                        @Override
+                        protected void onPreExecute() {
+                            super.onPreExecute();
+                        }
 
-                    @Override
-                    protected void onPostExecute(Bitmap bitmap) {
-                        super.onPostExecute(bitmap);
-                        if(bitmap != null)
-                            MainActivity.this.savePicture(product, bitmap);
-                            MainActivity.this.runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                adapter.notifyDataSetChanged();
-                            }
-                        });
-                    }
-                }.execute(product.getImageUrl());
+                        @Override
+                        protected void onPostExecute(Bitmap bitmap) {
+                            super.onPostExecute(bitmap);
+                            if(bitmap != null)
+                                MainActivity.this.savePicture(product, bitmap);
+                                MainActivity.this.runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    adapter.notifyDataSetChanged();
+                                }
+                            });
+                        }
+                    }.execute(product.getImageUrl());
 
         View v = LayoutInflater.from(this).inflate(R.layout.item_list_holder, null, false);
         ListView listView = v.findViewById(R.id.list_item_list_holder);

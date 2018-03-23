@@ -3,8 +3,6 @@ package com.example.mallocc.caloriecompanion;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.os.Environment;
-import android.provider.MediaStore;
 import android.util.Log;
 
 import com.backend.Product;
@@ -16,8 +14,6 @@ import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
 
 /**
@@ -65,7 +61,7 @@ public class FileHandler {
 
             FileOutputStream out = new FileOutputStream(filename);
 
-            image.compress(Bitmap.CompressFormat.JPEG, 90, out);
+            image.compress(Bitmap.CompressFormat.JPEG, 70, out);
             out.flush();
             out.close();
 
