@@ -4,13 +4,13 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentStatePagerAdapter;
 
-import backend.Product;
+import com.backend.Product;
 
 public class PagerAdapter extends FragmentStatePagerAdapter {
     int mNumOfTabs;
 
-    TabFragScales tab1= new TabFragScales();
-    TabFragNutrition tab2 = new TabFragNutrition();
+    ScalesFragment tab1= new ScalesFragment();
+    NutritionFragment tab2 = new NutritionFragment();
 
     public PagerAdapter(FragmentManager fm, int NumOfTabs) {
         super(fm);

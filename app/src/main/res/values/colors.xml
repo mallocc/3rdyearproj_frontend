@@ -16,4 +16,5 @@
     <color name="itemTextColour">#aa0000</color>
     <color name="confirmationButtons">#009900</color>
     <color name="transparent">#00ffffff</color>
+    <color name="red">#ff0000</color>
 </resources>

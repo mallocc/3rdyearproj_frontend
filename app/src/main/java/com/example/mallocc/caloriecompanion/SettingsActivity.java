@@ -9,6 +9,8 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 
+import java.io.File;
+
 public class SettingsActivity extends AppCompatActivity {
 
     @Override
@@ -85,6 +87,8 @@ public class SettingsActivity extends AppCompatActivity {
         spinner = findViewById(R.id.search_query_size_spinner);
 
         GlobalSettings.searchQuerySize = (int)spinner.getSelectedItemId();
+
+        FileHandler.saveSettings(this);
 
         finish();
     }

@@ -1,39 +1,65 @@
 package com.example.mallocc.caloriecompanion;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
+import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.media.MediaPlayer;
+import android.os.AsyncTask;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
+import android.provider.MediaStore;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.TabLayout;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.InputType;
+import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AbsListView;
 import android.widget.AdapterView;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.SocketTimeoutException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Set;
+import java.util.regex.Pattern;
 
-import backend.Controller;
-import backend.Product;
-import backend.simple.parser.ParseException;
+import com.backend.Controller;
+import com.backend.HelperUtils;
+import com.backend.Model;
+import com.backend.NutritionTable;
+import com.backend.Product;
+import com.simpleJSON.parser.ParseException;
 
 import com.google.android.gms.samples.vision.barcodereader.BarcodeCaptureActivity;
 
@@ -41,6 +67,10 @@ import com.google.android.gms.common.api.CommonStatusCodes;
 import com.google.android.gms.vision.barcode.Barcode;
 
 public class MainActivity extends AppCompatActivity {
+
+    private static final int RC_BARCODE_CAPTURE = 9001;
+    private static final int REQUEST_IMAGE_CAPTURE = 9002;
+    private static final int TEST = 9003;
 
     // Controller for the link to the model
     private Controller controller;
@@ -58,16 +88,25 @@ public class MainActivity extends AppCompatActivity {
     // Pager adapter to communicate to the tabs
     private PagerAdapter pagerAdapter;
 
+    // beeper
+    MediaPlayer beeper;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        android.support.v7.app.ActionBar actionBar = getSupportActionBar();
+        actionBar.setTitle("Scales");
+
+        // load settings
+        FileHandler.loadSettings(this);
 
         // Set tab layout titles for each tab
         TabLayout tabLayout = findViewById(R.id.tab_layout);
-        tabLayout.addTab(tabLayout.newTab().setText("scales"));
-        tabLayout.addTab(tabLayout.newTab().setText("nutrition"));
+//        tabLayout.addTab(tabLayout.newTab().setText("scales"));
+//        tabLayout.addTab(tabLayout.newTab().setText("nutrition"));
+        tabLayout.addTab(tabLayout.newTab().setIcon(R.drawable.scale_icon));
+        tabLayout.addTab(tabLayout.newTab().setIcon(R.drawable.nutrition));
         tabLayout.setTabGravity(TabLayout.GRAVITY_FILL);
 
         // Create the pager adapter for the tabs
@@ -81,27 +120,35 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onTabSelected(TabLayout.Tab tab) {
                 viewPager.setCurrentItem(tab.getPosition());
+                android.support.v7.app.ActionBar actionBar = getSupportActionBar();
+                if (tab.getPosition() == 0) actionBar.setTitle("Scales");
+                if (tab.getPosition() == 1) actionBar.setTitle("Product Information");
             }
 
             @Override
             public void onTabUnselected(TabLayout.Tab tab) {
-
             }
 
             @Override
             public void onTabReselected(TabLayout.Tab tab) {
-
             }
         });
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
 
-        // Gets the singleton instance of the Controller
-        controller = Controller.getInstance(Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_DOWNLOADS) + "/" +
-                getResources().getString(R.string.filename));
 
-        // Listen for changes in the weight from the scales device
+
+        // Gets the singleton instance of the Controller
+        controller = Controller.getInstance();
+        try {
+            controller.readDatabase(this);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // Listen for changes in the scalesDevice from the scales device
         pollWeight();
+
+        beeper = MediaPlayer.create(this, R.raw.beep);
     }
 
     @Override
@@ -144,10 +191,23 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onPause() {
+        try {
+            controller.writeDatabase(this);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        super.onPause();
+    }
+
+    @Override
     protected void onDestroy() {
-        super.onDestroy();
+
 //        if (mCommandService != null)
 //            mCommandService.stop();
+
+
+        super.onDestroy();
     }
 
     /**
@@ -217,12 +277,36 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * Method for the bluetooth reconnect button.
+     *
      * @param view
      */
     public void tryReconnect(View view) {
+        showLoadingBluetooth();
         connectToDevice();
     }
 
+
+    public void showLoadingBluetooth() {
+        findViewById(R.id.loading_circle_bluetooth).setVisibility(View.VISIBLE);
+    }
+
+    public void hideLoadingBluetooth() {
+        findViewById(R.id.loading_circle_bluetooth).setVisibility(View.GONE);
+    }
+
+    public void showLoading() {
+        findViewById(R.id.loading_circle_normal).setVisibility(View.VISIBLE);
+        findViewById(R.id.textSearch).setVisibility(View.GONE);
+        findViewById(R.id.speechSearch).setVisibility(View.GONE);
+        findViewById(R.id.scanBarcode).setVisibility(View.GONE);
+    }
+
+    public void hideLoading() {
+        findViewById(R.id.loading_circle_normal).setVisibility(View.GONE);
+        findViewById(R.id.textSearch).setVisibility(View.VISIBLE);
+        findViewById(R.id.speechSearch).setVisibility(View.VISIBLE);
+        findViewById(R.id.scanBarcode).setVisibility(View.VISIBLE);
+    }
 
     /**
      * Hides UI and shows reconnect button.
@@ -243,10 +327,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private static final int RC_BARCODE_CAPTURE = 9001;
+
 
     /**
      * Starts the scanner activity.
+     *
      * @param view
      */
     public void startScanner(View view) {
@@ -258,15 +343,20 @@ public class MainActivity extends AppCompatActivity {
     /**
      * Method for speech listening button.
      * Converts speech to text and processes the text.
+     *
      * @param view
      */
     public void processSpeech(View view) {
-
+        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+            startActivityForResult(takePictureIntent, TEST);
+        }
     }
 
     /**
      * Method for the search for item button.
      * Creates a dialog that the user inputs the search query.
+     *
      * @param view
      */
     public void processText(View view) {
@@ -291,11 +381,10 @@ public class MainActivity extends AppCompatActivity {
         builder.setView(frame);
 
 // Set up the buttons
-        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+        builder.setPositiveButton("Search", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                String query = input.getText().toString();
-                showSearchedProductList(searchForProducts(query));
+
             }
         });
         if (controller.getLastSearchedProducts().size() > 0) {
@@ -309,17 +398,29 @@ public class MainActivity extends AppCompatActivity {
         builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                dialog.cancel();
             }
         });
 
-        builder.show();
+        final AlertDialog dialog = builder.create();
+        dialog.show();
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                final String query = input.getText().toString().trim();
+                if(!query.equals(""))
+                {
+                    new ProductSearchAsyncTask().execute(query);
+                    dialog.dismiss();
+                }
+            }
+        });
 
     }
 
 
     /**
      * Updates the current product selected and updates the tabs.
+     *
      * @param product
      */
     private void updateCurrentProduct(Product product) {
@@ -327,13 +428,82 @@ public class MainActivity extends AppCompatActivity {
         pagerAdapter.update(product);
     }
 
+
+    private class ProductSearchAsyncTask extends AsyncTask<String, Void, ArrayList<Product>> {
+        @Override
+        protected ArrayList<Product> doInBackground(String... strings) {
+            return searchForProducts(strings[0]);
+        }
+
+        @Override
+        protected void onPostExecute(ArrayList<Product> products) {
+            super.onPostExecute(products);
+            hideLoading();
+            showSearchedProductList(products);
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            showLoading();
+        }
+    }
+
+    private class BarcodeSearchAsyncTask extends AsyncTask<String, Void, Product> {
+        private String barcode = null;
+        private boolean timedOut = false;
+        @Override
+        protected Product doInBackground(String... strings) {
+            try {
+                barcode = strings[0];
+                return controller.searchProductBarcode(barcode);
+            } catch(SocketTimeoutException e)
+            {
+                timedOut = true;
+            } catch (IOException e) {
+                e.printStackTrace();
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Product product) {
+            super.onPostExecute(product);
+            hideLoading();
+
+            if(timedOut) {
+                Toast.makeText(MainActivity.this, "Product search time out. Please scan again.", Toast.LENGTH_SHORT).show();
+                startScanner(null);
+            }
+            if (product != null) {
+                controller.setCurrentProduct(product);
+                pagerAdapter.update(product);
+                Toast.makeText(MainActivity.this, "Product found.", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(MainActivity.this, "Product not found. (Create new from barcode...)", Toast.LENGTH_SHORT).show();
+                createNewProductFromBarcode(barcode);
+            }
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            showLoading();
+        }
+    }
+
     /**
      * This uses the TescoAPI to get a list of products from a search query.
+     *
      * @param query
      * @return List of products.
      */
     private ArrayList<Product> searchForProducts(String query) {
+
         ArrayList<Product> foundProducts = null;
+
         try {
             foundProducts = controller.searchProductName(query,
                     Integer.parseInt(GlobalSettings.searchQuerySizes
@@ -344,10 +514,17 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
 
-        if (foundProducts == null)
-            return null;
+        return foundProducts;
+    }
 
-        if (foundProducts.size() == 0) {
+    /**
+     * This creates a dialog of the list of product previously obtained from a past search query.
+     *
+     * @param products
+     */
+    private void showSearchedProductList(ArrayList<Product> products) {
+
+        if (products == null || products.size() == 0) {
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
             builder.setTitle("No results");
 
@@ -359,27 +536,47 @@ public class MainActivity extends AppCompatActivity {
             });
 
             builder.show();
-        } else {
-            controller.setLastSearchedProducts(foundProducts);
-        }
 
-        return foundProducts;
-    }
-
-    /**
-     * This creates a dialog of the list of product previously obtained from a past search query.
-     * @param products
-     */
-    private void showSearchedProductList(ArrayList<Product> products) {
-        if (products == null || products.size() == 0)
             return;
+        } else
+            controller.setLastSearchedProducts(products);
+
+
 
         final AlertDialog builder = new AlertDialog.Builder(this).create();
         builder.setTitle("Results:");
 
-        ItemAdapter adapter = new ItemAdapter(this, products);
+        final ItemAdapter adapter = new ItemAdapter(this, products);
 
-        ListView listView = new ListView(this);
+        for(final Product product : products)
+            if(product.getImageUrl() != null)
+                new AsyncTask<String, Void, Bitmap>(){
+                    @Override
+                    protected Bitmap doInBackground(String... strings) {
+                        return  FileHandler.getBitmapUrl(strings[0]);
+                    }
+
+                    @Override
+                    protected void onPreExecute() {
+                        super.onPreExecute();
+                    }
+
+                    @Override
+                    protected void onPostExecute(Bitmap bitmap) {
+                        super.onPostExecute(bitmap);
+                        if(bitmap != null)
+                            MainActivity.this.savePicture(product, bitmap);
+                            MainActivity.this.runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                adapter.notifyDataSetChanged();
+                            }
+                        });
+                    }
+                }.execute(product.getImageUrl());
+
+        View v = LayoutInflater.from(this).inflate(R.layout.item_list_holder, null, false);
+        ListView listView = v.findViewById(R.id.list_item_list_holder);
         listView.setAdapter(adapter);
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
@@ -403,7 +600,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Starts a thread to listen to changes in the weight being sent from the scales device.
+     * Starts a thread to listen to changes in the scalesDevice being sent from the scales device.
      */
     public void pollWeight() {
         new Thread(new Runnable() {
@@ -412,9 +609,9 @@ public class MainActivity extends AppCompatActivity {
                 while (true) {
                     if (mCommandService != null) {
                         pagerAdapter.update(
-                                mCommandService.weight.getWeight(),
-                                ((int) controller.getCurrentCalories(mCommandService.weight.weight) - (int) controller.getOffsetCalories()) + " kcal",
-                                (int) controller.getCurrentCalories(mCommandService.weight.weight) + " kcal",
+                                mCommandService.scalesDevice.getWeight(),
+                                ((int) controller.getCurrentCalories(mCommandService.scalesDevice.weight) - (int) controller.getOffsetCalories()) + " kcal",
+                                (int) controller.getCurrentCalories(mCommandService.scalesDevice.weight) + " kcal",
                                 controller.getCurrentProduct()
                         );
                     }
@@ -430,7 +627,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Resets the weight to zero.
+     * Resets the scalesDevice to zero.
+     *
      * @param view
      */
     public void resetWeight(View view) {
@@ -439,11 +637,215 @@ public class MainActivity extends AppCompatActivity {
 
     /**
      * This resets the calories stored so far.
+     *
      * @param view
      */
     public void resetScales(View view) {
         controller.resetScales();
     }
+
+
+
+    private boolean validateString(String data, String fieldName) {
+        boolean check = HelperUtils.checkFloat(data);
+        if (!check)
+            Toast.makeText(this, "Please enter valid number for '" + fieldName + "'", Toast.LENGTH_SHORT).show();
+        return check;
+    }
+
+
+    public void dispatchTakePictureIntent(View view) {
+        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+            startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
+        }
+    }
+
+    private Bitmap currentPhoto = null;
+
+    public void viewTakenImage(View view) {
+        showImage(currentPhoto);
+    }
+
+    public void showCurrentProductPhoto(View view)
+    {
+        final Product product = controller.getCurrentProduct();
+        if(product != null)
+            if(product.getImageUrl() == null)
+            {
+                showImage(getProductBitmap(product));
+            }
+            else if(!product.getImageUrl().equals(""))
+            {
+                if(!FileHandler.productImageExists(product, MainActivity.this))
+                    new AsyncTask<String, Void, Bitmap>(){
+                        @Override
+                        protected Bitmap doInBackground(String... strings) {
+                           return  FileHandler.getBitmapUrl(strings[0]);
+                        }
+
+                        @Override
+                        protected void onPreExecute() {
+                            super.onPreExecute();
+                            showLoading();
+                        }
+
+                        @Override
+                        protected void onPostExecute(Bitmap bitmap) {
+                            super.onPostExecute(bitmap);
+                            hideLoading();
+                            if(bitmap != null)
+                                savePicture(product, bitmap);
+                            showImage(getProductBitmap(product));
+                        }
+                    }.execute(product.getImageUrl());
+                else
+                    showImage(getProductBitmap(product));
+            }
+    }
+
+    public void showImage(Bitmap image)
+    {
+        if (image == null) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("No photo taken.");
+            builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
+                }
+            });
+            builder.show();
+        } else {
+            ImageView imageView = new ImageView(this);
+            imageView.setImageBitmap(image);
+            imageView.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            imageView.setMinimumHeight(800);
+            imageView.setMinimumWidth(450);
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setView(imageView);
+            builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
+                }
+            });
+            builder.show();
+        }
+    }
+
+    private void createNewProductFromBarcode(final String barcode) {
+
+        // new item dialog
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Create new product:");
+
+        final View view = getLayoutInflater().inflate(R.layout.new_product_form, null);
+        builder.setView(view);
+
+        builder.setPositiveButton("Save", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+            }
+        });
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int i) {
+            }
+        });
+
+        final AlertDialog dialog = builder.create();
+        dialog.setCanceledOnTouchOutside(false);
+        dialog.show();
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                EditText name = view.findViewById(R.id.new_product_name);
+                if (name.getText().toString().equals("")) return;
+                EditText cals = view.findViewById(R.id.new_product_calories);
+                if (!validateString(cals.getText().toString(), "Calories")) return;
+                EditText fat = view.findViewById(R.id.new_product_fat);
+                if (!validateString(fat.getText().toString(), "Fat")) return;
+                EditText sats = view.findViewById(R.id.new_product_sats);
+                if (!validateString(sats.getText().toString(), "Saturated")) return;
+                EditText sugars = view.findViewById(R.id.new_product_sugars);
+                if (!validateString(sugars.getText().toString(), "Sugars")) return;
+                EditText fibre = view.findViewById(R.id.new_product_fibre);
+                if (!validateString(fibre.getText().toString(), "Fibre")) return;
+                EditText protein = view.findViewById(R.id.new_product_protein);
+                if (!validateString(protein.getText().toString(), "Protein")) return;
+                EditText salt = view.findViewById(R.id.new_product_salt);
+                if (!validateString(salt.getText().toString(), "Salt")) return;
+
+                if(currentPhoto == null)
+                {
+                    Toast.makeText(MainActivity.this, "Please add a photo.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                Product product = new Product(
+                        name.getText().toString(),
+                        barcode,
+                        new NutritionTable(
+                                cals.getText().toString(),
+                                fat.getText().toString(),
+                                sats.getText().toString(),
+                                sugars.getText().toString(),
+                                fibre.getText().toString(),
+                                protein.getText().toString(),
+                                salt.getText().toString()
+                        )
+                );
+                updateCurrentProduct(product);
+
+                savePicture(product,currentPhoto);
+                currentPhoto = null;
+
+                dialog.dismiss();
+            }
+        });
+
+        // new yesno dialog
+        final AlertDialog.Builder yesnoBuilder = new AlertDialog.Builder(this);
+
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                yesnoBuilder.show();
+            }
+        });
+
+        // yes no on cancel dialog
+        DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog1, int which) {
+                switch (which){
+                    case DialogInterface.BUTTON_POSITIVE:
+                        currentPhoto = null;
+                        dialog.dismiss();
+                        break;
+
+                    case DialogInterface.BUTTON_NEGATIVE:
+                        break;
+                }
+            }
+        };
+        yesnoBuilder.setMessage("Do you want to discard current details?").setPositiveButton("Yes", dialogClickListener)
+                .setNegativeButton("No", dialogClickListener);
+
+    }
+
+
+    public void savePicture(Product product, Bitmap data)
+    {
+        FileHandler.writeImage(product.getBarcode(), data, this);
+        product.setImageUrl(null);
+    }
+
+    public Bitmap getProductBitmap(Product product)
+    {
+        return FileHandler.readImage(product.getBarcode(), this);
+    }
+
 
 
     //Getting the scan results
@@ -454,27 +856,28 @@ public class MainActivity extends AppCompatActivity {
             if (resultCode == CommonStatusCodes.SUCCESS) {
                 if (data != null) {
                     Barcode barcode = data.getParcelableExtra(BarcodeCaptureActivity.BarcodeObject);
-                    //If qr code has data, set clubid as qrcode
-                    try {
-                        Product product = controller.searchProductBarcode(barcode.displayValue);
-                        if (product != null) {
-                            controller.setCurrentProduct(product);
-                            Toast.makeText(MainActivity.this, product.toString(), Toast.LENGTH_SHORT).show();
-                            pagerAdapter.update(product);
-                        }
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    } catch (ParseException e) {
-                        e.printStackTrace();
-                    }
-                } else {
+
+                    beeper.start();
+
+                    new BarcodeSearchAsyncTask().execute(barcode.displayValue);
                 }
-            } else {
             }
+        } else if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
+            Bundle extras = data.getExtras();
+            currentPhoto = (Bitmap) extras.get("data");
+        }
+        else if (requestCode == TEST && resultCode == RESULT_OK) {
+            Bundle extras = data.getExtras();
+            Product product = new Product("", "testbarcode", null );
+            savePicture(product, (Bitmap) extras.get("data"));
+            showImage(getProductBitmap(product));
+
         } else {
             super.onActivityResult(requestCode, resultCode, data);
         }
+
     }
+
 
     // The Handler that gets information back from the BluetoothChatService
     @SuppressLint("HandlerLeak")
@@ -485,6 +888,7 @@ public class MainActivity extends AppCompatActivity {
                 case BluetoothManager.MESSAGE_STATE_CHANGE:
                     switch (msg.arg1) {
                         case BluetoothManager.STATE_CONNECTED:
+                            hideLoadingBluetooth();
                             hideReconnectButton();
                             break;
                         case BluetoothManager.STATE_CONNECTING:
@@ -492,18 +896,22 @@ public class MainActivity extends AppCompatActivity {
                             break;
                         case BluetoothManager.STATE_LISTEN:
                         case BluetoothManager.STATE_NONE:
+                            hideLoadingBluetooth();
                             Toast.makeText(MainActivity.this, "not connected.", Toast.LENGTH_SHORT);
                             showReconnectButton();
                             break;
                     }
                     break;
                 case BluetoothManager.MESSAGE_DEVICE_NAME:
+                    hideLoadingBluetooth();
                     Toast.makeText(getApplicationContext(), "Connected to scales.", Toast.LENGTH_SHORT).show();
                     break;
                 case BluetoothManager.MESSAGE_TOAST:
+                    hideLoadingBluetooth();
                     Toast.makeText(getApplicationContext(), msg.getData().getString(BluetoothManager.TOAST), Toast.LENGTH_SHORT).show();
                     break;
             }
         }
     };
+
 }

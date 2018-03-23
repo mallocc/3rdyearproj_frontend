@@ -16,6 +16,8 @@ import java.io.OutputStream;
 import java.util.Set;
 import java.util.UUID;
 
+import com.backend.ScalesDevice;
+
 public class BluetoothManager {
 
     // Create a singleton of BluetoothManager
@@ -28,7 +30,7 @@ public class BluetoothManager {
     }
 
     // Weight object to be passed
-    public volatile WeightObject weight = new WeightObject();
+    public volatile ScalesDevice scalesDevice = new ScalesDevice();
 
     // Debugging
     private static final String TAG = "BluetoothManager";
@@ -247,17 +249,6 @@ public class BluetoothManager {
      * Indicate that the connection was lost and notify the UI Activity.
      */
     private void connectionLost() {
-//        mConnectionLostCount++;
-//        if (mConnectionLostCount < 3) {
-//        	// Send a reconnect message back to the Activity
-//	        Message msg = mHandler.obtainMessage(RemoteBluetooth.MESSAGE_TOAST);
-//	        Bundle bundle = new Bundle();
-//	        bundle.putString(RemoteBluetooth.TOAST, "Device connection was lost. Reconnecting...");
-//	        msg.setData(bundle);
-//	        mHandler.sendMessage(msg);
-//
-//        	connect(mSavedDevice);
-//        } else {
         setState(STATE_LISTEN);
         // Send a failure message back to the Activity
         Message msg = mHandler.obtainMessage(MESSAGE_TOAST);
@@ -265,7 +256,6 @@ public class BluetoothManager {
         bundle.putString(TOAST, "Device connection was lost");
         msg.setData(bundle);
         mHandler.sendMessage(msg);
-//        }
     }
 
     /**
@@ -368,13 +358,13 @@ public class BluetoothManager {
             while (true) {
                 try {
 
-                    // Send the obtained bytes to the weight object that is passed to the Activity
+                    // Send the obtained bytes to the scalesDevice object that is passed to the Activity
                     String message = reader.readLine();
-                    weight.setRaw(message);
+                    scalesDevice.setRaw(message);
                     Log.e(TAG, "message : " + message);
 
                 } catch (IOException e) {
-                    Log.e(TAG, "disconnected", e);
+                    Log.e(TAG, "disconnected");
                     connectionLost();
                     break;
                 }

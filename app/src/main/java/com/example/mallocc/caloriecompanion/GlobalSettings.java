@@ -1,5 +1,9 @@
 package com.example.mallocc.caloriecompanion;
 
+import android.app.Activity;
+import android.content.Context;
+import android.content.SharedPreferences;
+
 /**
  * Created by hercu on 16-Mar-18.
  */
@@ -10,8 +14,6 @@ public class GlobalSettings {
             "Grams",
             "Kilos"
     };
-
-
 
     static public final int UNITS_GRAMS = 0;
     static public final int UNITS_KILOS = 1;
@@ -29,5 +31,10 @@ public class GlobalSettings {
     static public final int SEARCH_QUERY_SIZE_10 = 2;
 
     static public int searchQuerySize = SEARCH_QUERY_SIZE_1;
+
+
+
+    public static String
+            DATABASE_NAME = "database.db";
 
 }

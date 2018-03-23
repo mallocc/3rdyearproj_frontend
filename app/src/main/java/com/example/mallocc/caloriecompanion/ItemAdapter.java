@@ -2,12 +2,8 @@ package com.example.mallocc.caloriecompanion;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.PorterDuff;
-import android.graphics.PorterDuffColorFilter;
-import android.graphics.drawable.BitmapDrawable;
-import android.graphics.drawable.Drawable;
-import android.graphics.drawable.ScaleDrawable;
-import android.view.Gravity;
+import android.graphics.BitmapFactory;
+import android.os.AsyncTask;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,7 +13,9 @@ import android.widget.TextView;
 
 import java.util.ArrayList;
 
-import backend.Product;
+import com.backend.Model;
+import com.backend.Product;
+import com.backend.TescoAPI;
 
 /**
  * Created by Alex on 27/06/2016.
@@ -51,14 +49,11 @@ class ItemAdapter extends ArrayAdapter<Product>
     }
 
     @Override
-    public long getItemId(int i)
-    {
-        return 0;
-    }
-
-    @Override
     public View getView(int i, View convertView, ViewGroup parent)
     {
+        final Product product = objects.get(i);
+        final MainActivity activity = (MainActivity) context;
+
         // 1. Create inflater
         LayoutInflater inflater = (LayoutInflater) context
                 .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
@@ -68,10 +63,18 @@ class ItemAdapter extends ArrayAdapter<Product>
 
         // 3. Get the two text view from the rowView
         TextView labelView = rowView.findViewById(R.id.row_item_name);
-        ImageView imageView = rowView.findViewById(R.id.image_view);
+
+        final ImageView imageView = rowView.findViewById(R.id.image_view);
+
+        if(FileHandler.productImageExists(product, context))
+        {
+            Bitmap bitmap = activity.getProductBitmap(product);
+            if (bitmap != null)
+                imageView.setImageBitmap(bitmap);
+        }
 
         // 4. Set the text for textView
-        labelView.setText(objects.get(i).getName());
+        labelView.setText(product.getName());
 
 
         // 5. return rowView

@@ -24,7 +24,9 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
+import android.graphics.drawable.GradientDrawable;
 import android.hardware.Camera;
 import android.os.Build;
 import android.os.Bundle;
@@ -112,6 +114,9 @@ public final class BarcodeCaptureActivity extends AppCompatActivity implements B
         Snackbar.make(layout, "Tap to capture. Pinch/Stretch to zoom",
                 Snackbar.LENGTH_LONG)
                 .show();
+
+        // added
+        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     }
 
     /**
@@ -205,7 +210,7 @@ public final class BarcodeCaptureActivity extends AppCompatActivity implements B
         // at long distances.
         CameraSource.Builder builder = new CameraSource.Builder(getApplicationContext(), barcodeDetector)
                 .setFacing(CameraSource.CAMERA_FACING_BACK)
-                .setRequestedPreviewSize(1600, 1024)
+                .setRequestedPreviewSize(1600, 1600) //changed
                 .setRequestedFps(15.0f);
 
         // make sure that auto focus is an available option
@@ -432,8 +437,13 @@ public final class BarcodeCaptureActivity extends AppCompatActivity implements B
         }
     }
 
+    // changed
     @Override
     public void onBarcodeDetected(Barcode barcode) {
         //do something with barcode data returned
+        Intent data = new Intent();
+        data.putExtra(BarcodeObject, barcode);
+        setResult(CommonStatusCodes.SUCCESS, data);
+        finish();
     }
 }
