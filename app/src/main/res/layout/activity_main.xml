@@ -2,6 +2,7 @@
 <android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/content"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context="com.example.mallocc.caloriecompanion.MainActivity">
@@ -11,10 +12,10 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
 
-        app:tabTextAppearance="@style/MyCustomTabText"
-        android:theme="@style/ActionBar"
         android:background="@drawable/myrect"
-        android:elevation="10dp"/>
+        android:elevation="10dp"
+        android:theme="@style/ActionBar"
+        app:tabTextAppearance="@style/MyCustomTabText" />
 
     <android.support.v4.view.ViewPager
         android:id="@+id/pager"
@@ -28,8 +29,7 @@
         android:layout_height="match_parent"
         android:layout_alignParentTop="true"
         android:clipToPadding="false"
-        android:padding="10dp"
-        >
+        android:padding="10dp">
 
         <ProgressBar
             android:id="@+id/loading_circle_normal"
@@ -39,7 +39,7 @@
             android:layout_gravity="center"
             android:indeterminateTint="@color/colorAccent"
             android:indeterminateTintMode="src_in"
-            android:visibility="gone"/>
+            android:visibility="gone" />
 
         <ProgressBar
             android:id="@+id/loading_circle_bluetooth"
@@ -49,7 +49,7 @@
             android:layout_gravity="center"
             android:indeterminateTint="@color/colorAccentOpposite"
             android:indeterminateTintMode="src_in"
-            android:visibility="gone"/>
+            android:visibility="gone" />
 
 
         <android.support.design.widget.FloatingActionButton
@@ -61,6 +61,7 @@
             android:src="@drawable/connect"
             android:tint="@color/white"
             app:backgroundTint="@color/colorAccentOpposite" />
+
         <android.support.design.widget.FloatingActionButton
             android:id="@+id/scanBarcode"
             android:layout_width="64dp"
@@ -69,6 +70,7 @@
             android:onClick="startScanner"
             android:src="@drawable/barcode_48dp"
             android:tint="@color/white" />
+
         <android.support.design.widget.FloatingActionButton
             android:id="@+id/speechSearch"
             android:layout_width="64dp"
@@ -77,6 +79,7 @@
             android:onClick="processSpeech"
             android:src="@android:drawable/ic_btn_speak_now"
             android:tint="@color/white" />
+
         <android.support.design.widget.FloatingActionButton
             android:id="@+id/textSearch"
             android:layout_width="64dp"

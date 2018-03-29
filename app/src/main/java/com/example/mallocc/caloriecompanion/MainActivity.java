@@ -7,6 +7,7 @@ import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.DialogInterface;
@@ -21,7 +22,9 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.provider.MediaStore;
+import android.speech.RecognizerIntent;
 import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.Snackbar;
 import android.support.design.widget.TabLayout;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
@@ -51,6 +54,7 @@ import java.io.InputStream;
 import java.net.SocketTimeoutException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Locale;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -71,6 +75,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int RC_BARCODE_CAPTURE = 9001;
     private static final int REQUEST_IMAGE_CAPTURE = 9002;
     private static final int TEST = 9003;
+    private final int REQ_CODE_SPEECH_INPUT = 100;
 
     // Controller for the link to the model
     private Controller controller;
@@ -106,7 +111,7 @@ public class MainActivity extends AppCompatActivity {
 //        tabLayout.addTab(tabLayout.newTab().setText("scales"));
 //        tabLayout.addTab(tabLayout.newTab().setText("nutrition"));
         tabLayout.addTab(tabLayout.newTab().setIcon(R.drawable.scale_icon));
-        tabLayout.addTab(tabLayout.newTab().setIcon(R.drawable.nutrition));
+        tabLayout.addTab(tabLayout.newTab().setIcon(R.drawable.information_outline));
         tabLayout.setTabGravity(TabLayout.GRAVITY_FILL);
 
         // Create the pager adapter for the tabs
@@ -149,6 +154,8 @@ public class MainActivity extends AppCompatActivity {
         pollWeight();
 
         beeper = MediaPlayer.create(this, R.raw.beep);
+
+        tryReconnect(null);
     }
 
     @Override
@@ -181,7 +188,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        connectToDevice();
+        //connectToDevice();
+
     }
 
     @Override
@@ -260,7 +268,7 @@ public class MainActivity extends AppCompatActivity {
             Set<BluetoothDevice> pairedDevices = mCommandService.getBondedDevices();
 
             if (pairedDevices != null && mCommandService.getState() != BluetoothManager.STATE_CONNECTED) {
-                Toast.makeText(this, "Attempting to connect to scales...", Toast.LENGTH_SHORT).show();
+                //Toast.makeText(this, "Attempting to connect to scales...", Toast.LENGTH_SHORT).show();
                 for (BluetoothDevice device : pairedDevices)
                     if (device.getAddress().equals(EXTRA_DEVICE_ADDRESS)) {
                         mCommandService.connect(device);
@@ -347,9 +355,16 @@ public class MainActivity extends AppCompatActivity {
      * @param view
      */
     public void processSpeech(View view) {
-        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
-            startActivityForResult(takePictureIntent, TEST);
+        Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
+        intent.putExtra(RecognizerIntent.EXTRA_PROMPT,
+                "Hi speak something");
+        try {
+            startActivityForResult(intent, REQ_CODE_SPEECH_INPUT);
+        } catch (ActivityNotFoundException a) {
+            a.printStackTrace();
         }
     }
 
@@ -474,16 +489,30 @@ public class MainActivity extends AppCompatActivity {
             hideLoading();
 
             if(timedOut) {
-                Toast.makeText(MainActivity.this, "Product search time out. Please scan again.", Toast.LENGTH_SHORT).show();
+                Snackbar.make(findViewById(R.id.content), "Product search time out. Please scan again.", Snackbar.LENGTH_SHORT).show();
                 startScanner(null);
             }
             if (product != null) {
                 controller.setCurrentProduct(product);
                 pagerAdapter.update(product);
-                Toast.makeText(MainActivity.this, "Product found.", Toast.LENGTH_SHORT).show();
+                Snackbar.make(findViewById(R.id.content), "Product found.", Snackbar.LENGTH_SHORT).show();
             } else {
-                Toast.makeText(MainActivity.this, "Product not found. (Create new from barcode...)", Toast.LENGTH_SHORT).show();
-                createNewProductFromBarcode(barcode);
+                // new yesno dialog
+                final AlertDialog.Builder yesnoBuilder = new AlertDialog.Builder(MainActivity.this);
+                yesnoBuilder.setMessage("Product not found. Would you like to create a new one?");
+                yesnoBuilder.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        createNewProductFromBarcode(barcode);
+                    }
+                });
+                yesnoBuilder.setNegativeButton("No", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+
+                    }
+                });
+                yesnoBuilder.show();
             }
         }
 
@@ -776,6 +805,8 @@ public class MainActivity extends AppCompatActivity {
                 if (!validateString(protein.getText().toString(), "Protein")) return;
                 EditText salt = view.findViewById(R.id.new_product_salt);
                 if (!validateString(salt.getText().toString(), "Salt")) return;
+                EditText carbs = view.findViewById(R.id.new_product_carbs);
+                if (!validateString(carbs.getText().toString(), "Carbohydrates")) return;
 
                 if(currentPhoto == null)
                 {
@@ -793,13 +824,16 @@ public class MainActivity extends AppCompatActivity {
                                 sugars.getText().toString(),
                                 fibre.getText().toString(),
                                 protein.getText().toString(),
-                                salt.getText().toString()
+                                salt.getText().toString(),
+                                carbs.getText().toString()
                         )
                 );
                 updateCurrentProduct(product);
 
                 savePicture(product,currentPhoto);
                 currentPhoto = null;
+
+                Snackbar.make(findViewById(R.id.content), "New product '"+product.getName()+"' created.", Snackbar.LENGTH_SHORT).show();
 
                 dialog.dismiss();
             }
@@ -847,35 +881,161 @@ public class MainActivity extends AppCompatActivity {
         return FileHandler.readImage(product.getBarcode(), this);
     }
 
+    public void editProductButton(View view)
+    {
+        editProduct(controller.getCurrentProduct());
+    }
+
+    public void editProduct(final Product product)
+    {
+        // new item dialog
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Edit product:");
+
+        final View view = getLayoutInflater().inflate(R.layout.new_product_form, null);
+        builder.setView(view);
+
+        final EditText name = view.findViewById(R.id.new_product_name);
+        name.setText(product.getName());
+        final EditText cals = view.findViewById(R.id.new_product_calories);
+        cals.setText(""+product.getNutrition().getEnergy());
+        final EditText fat = view.findViewById(R.id.new_product_fat);
+        fat.setText(""+product.getNutrition().getFat());
+        final EditText sats = view.findViewById(R.id.new_product_sats);
+        sats.setText(""+product.getNutrition().getSats());
+        final EditText sugars = view.findViewById(R.id.new_product_sugars);
+        sugars.setText(""+product.getNutrition().getSugars());
+        final EditText fibre = view.findViewById(R.id.new_product_fibre);
+        fibre.setText(""+product.getNutrition().getFibre());
+        final EditText protein = view.findViewById(R.id.new_product_protein);
+        protein.setText(""+product.getNutrition().getProtein());
+        final EditText salt = view.findViewById(R.id.new_product_salt);
+        salt.setText(""+product.getNutrition().getSalt());
+        final EditText carbs = view.findViewById(R.id.new_product_carbs);
+        carbs.setText(""+product.getNutrition().getCarbs());
+
+        currentPhoto = getProductBitmap(product);
+
+        builder.setPositiveButton("Save", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+            }
+        });
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int i) {
+            }
+        });
+
+        final AlertDialog dialog = builder.create();
+        dialog.setCanceledOnTouchOutside(false);
+        dialog.show();
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                if (name.getText().toString().equals("")) return;
+                if (!validateString(cals.getText().toString(), "Calories")) return;
+                if (!validateString(fat.getText().toString(), "Fat")) return;
+                if (!validateString(sats.getText().toString(), "Saturated")) return;
+                if (!validateString(sugars.getText().toString(), "Sugars")) return;
+                if (!validateString(fibre.getText().toString(), "Fibre")) return;
+                if (!validateString(protein.getText().toString(), "Protein")) return;
+                if (!validateString(salt.getText().toString(), "Salt")) return;
+                if (!validateString(carbs.getText().toString(), "Carbohydrates")) return;
+
+                if(currentPhoto == null)
+                {
+                    Toast.makeText(MainActivity.this, "Please add a photo.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                product.setName(name.getText().toString());
+                product.setNutrition(new NutritionTable(
+                        cals.getText().toString(),
+                        fat.getText().toString(),
+                        sats.getText().toString(),
+                        sugars.getText().toString(),
+                        fibre.getText().toString(),
+                        protein.getText().toString(),
+                        salt.getText().toString(),
+                        carbs.getText().toString()
+                ));
+
+                savePicture(product,currentPhoto);
+                currentPhoto = null;
+
+                Snackbar.make(findViewById(R.id.content), "Product '"+product.getName()+"' updated.", Snackbar.LENGTH_SHORT).show();
+                dialog.dismiss();
+            }
+        });
+
+        // new yesno dialog
+        final AlertDialog.Builder yesnoBuilder = new AlertDialog.Builder(this);
+
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                yesnoBuilder.show();
+            }
+        });
+
+        // yes no on cancel dialog
+        DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog1, int which) {
+                switch (which){
+                    case DialogInterface.BUTTON_POSITIVE:
+                        currentPhoto = null;
+                        dialog.dismiss();
+                        break;
+
+                    case DialogInterface.BUTTON_NEGATIVE:
+                        break;
+                }
+            }
+        };
+        yesnoBuilder.setMessage("Do you want to discard current details?").setPositiveButton("Yes", dialogClickListener)
+                .setNegativeButton("No", dialogClickListener);
+
+    }
 
 
     //Getting the scan results
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
 
-        if (requestCode == RC_BARCODE_CAPTURE) {
-            if (resultCode == CommonStatusCodes.SUCCESS) {
-                if (data != null) {
-                    Barcode barcode = data.getParcelableExtra(BarcodeCaptureActivity.BarcodeObject);
+        if(requestCode == RESULT_OK)
+            if (requestCode == RC_BARCODE_CAPTURE) {
+                if (resultCode == CommonStatusCodes.SUCCESS) {
+                    if (data != null) {
+                        Barcode barcode = data.getParcelableExtra(BarcodeCaptureActivity.BarcodeObject);
 
-                    beeper.start();
+                        beeper.start();
 
-                    new BarcodeSearchAsyncTask().execute(barcode.displayValue);
+                        new BarcodeSearchAsyncTask().execute(barcode.displayValue);
+                    }
                 }
+            } else if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
+                Bundle extras = data.getExtras();
+                currentPhoto = (Bitmap) extras.get("data");
             }
-        } else if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
-            Bundle extras = data.getExtras();
-            currentPhoto = (Bitmap) extras.get("data");
-        }
-        else if (requestCode == TEST && resultCode == RESULT_OK) {
-            Bundle extras = data.getExtras();
-            Product product = new Product("", "testbarcode", null );
-            savePicture(product, (Bitmap) extras.get("data"));
-            showImage(getProductBitmap(product));
+            else if (requestCode == TEST && resultCode == RESULT_OK) {
+                Bundle extras = data.getExtras();
+                Product product = new Product("", "testbarcode", null );
+                savePicture(product, (Bitmap) extras.get("data"));
+                showImage(getProductBitmap(product));
 
-        } else {
-            super.onActivityResult(requestCode, resultCode, data);
-        }
+            }
+            else if(requestCode == REQ_CODE_SPEECH_INPUT && null != data)
+            {
+                ArrayList<String> result = data
+                        .getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
+                new ProductSearchAsyncTask().execute(result.get(0));
+            }
+            else {
+                super.onActivityResult(requestCode, resultCode, data);
+            }
 
     }
 
@@ -893,23 +1053,21 @@ public class MainActivity extends AppCompatActivity {
                             hideReconnectButton();
                             break;
                         case BluetoothManager.STATE_CONNECTING:
-                            Toast.makeText(MainActivity.this, "connecting...", Toast.LENGTH_SHORT);
                             break;
                         case BluetoothManager.STATE_LISTEN:
                         case BluetoothManager.STATE_NONE:
                             hideLoadingBluetooth();
-                            Toast.makeText(MainActivity.this, "not connected.", Toast.LENGTH_SHORT);
                             showReconnectButton();
                             break;
                     }
                     break;
                 case BluetoothManager.MESSAGE_DEVICE_NAME:
                     hideLoadingBluetooth();
-                    Toast.makeText(getApplicationContext(), "Connected to scales.", Toast.LENGTH_SHORT).show();
+                    Snackbar.make(findViewById(R.id.content), "Connected to scales.", Snackbar.LENGTH_SHORT).show();
                     break;
                 case BluetoothManager.MESSAGE_TOAST:
                     hideLoadingBluetooth();
-                    Toast.makeText(getApplicationContext(), msg.getData().getString(BluetoothManager.TOAST), Toast.LENGTH_SHORT).show();
+                    Snackbar.make(findViewById(R.id.content), msg.getData().getString(BluetoothManager.TOAST), Snackbar.LENGTH_SHORT).show();
                     break;
             }
         }

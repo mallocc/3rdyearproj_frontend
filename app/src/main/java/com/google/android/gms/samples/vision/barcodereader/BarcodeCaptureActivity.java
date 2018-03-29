@@ -112,7 +112,7 @@ public final class BarcodeCaptureActivity extends AppCompatActivity implements B
 
         LinearLayout layout = findViewById(R.id.topLayout);
         Snackbar.make(layout, "Tap to capture. Pinch/Stretch to zoom",
-                Snackbar.LENGTH_LONG)
+                Snackbar.LENGTH_INDEFINITE) // changed to indefinite
                 .show();
 
         // added

@@ -46,34 +46,50 @@
             android:layout_height="match_parent"
             android:layout_weight="2"
             android:orientation="horizontal"
-            android:weightSum="2">
+            android:weightSum="3">
 
-            <Button
-                android:id="@+id/add_image"
-                style="?android:attr/borderlessButtonStyle"
+            <TextView
+                android:id="@+id/textView"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_gravity="center_horizontal"
-                android:layout_weight="1"
-                android:drawableTint="@color/colorAccent"
-                android:drawableTop="@drawable/camera"
-                android:onClick="dispatchTakePictureIntent"
-                android:text="add Image"
-                android:textColor="@color/colorAccent" />
+                android:layout_weight="2"
+                android:gravity="center_vertical"
+                android:padding="10dp"
+                android:text="Image"
+                android:textSize="12sp" />
 
-            <Button
-                android:id="@+id/view_photo"
-                style="?android:attr/borderlessButtonStyle"
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_gravity="center_horizontal"
+                android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:drawableTint="@color/confirmationButtons"
-                android:drawableTop="@drawable/image"
-                android:onClick="viewTakenImage"
-                android:text="View Image"
-                android:textColor="@color/confirmationButtons"
-                />
+                android:orientation="horizontal"
+                android:weightSum="2">
+
+                <Button
+                    android:id="@+id/add_image"
+                    style="?android:attr/borderlessButtonStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_weight="1"
+                    android:drawableTop="@drawable/camera_24"
+                    android:onClick="dispatchTakePictureIntent"
+                    android:text="New"
+                    android:textSize="12sp" />
+
+                <Button
+                    android:id="@+id/view_photo"
+                    style="?android:attr/borderlessButtonStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:layout_weight="1"
+                    android:drawableTop="@drawable/image_24"
+                    android:onClick="viewTakenImage"
+                    android:text="View"
+                    android:textSize="12sp" />
+            </LinearLayout>
+
         </LinearLayout>
 
     </LinearLayout>

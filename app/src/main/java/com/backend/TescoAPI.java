@@ -298,7 +298,7 @@ public class TescoAPI
 		Connection.Response response = null;
 		Document doc = null;
 		try {
-			response = Jsoup.connect(url).timeout(2000).execute();
+			response = Jsoup.connect(url).execute();
 			if (response== null)
 			{
 				Log.e(TAG, "connection response null");
@@ -405,7 +405,7 @@ public class TescoAPI
 		Connection.Response response = null;
 		Document doc = null;
 		try {
-			response = Jsoup.connect(url).timeout(2000).execute();
+			response = Jsoup.connect(url).execute();
 			if (response== null)
 			{
 				Log.e(TAG, "connection response null");

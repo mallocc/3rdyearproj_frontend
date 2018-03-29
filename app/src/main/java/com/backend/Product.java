@@ -45,6 +45,10 @@ public class Product
 		this.searchedName = "";
 	}
 
+	public void setName(String name) {
+		this.name = name;
+	}
+
 	public String getBarcode()
 	{
 		return barcode;

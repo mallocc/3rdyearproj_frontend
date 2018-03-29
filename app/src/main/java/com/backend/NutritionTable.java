@@ -9,7 +9,7 @@ public class NutritionTable
 		
 	}
 
-	public NutritionTable(String energy, String fat, String sats, String sugars, String fibre, String protein, String salt)
+	public NutritionTable(String energy, String fat, String sats, String sugars, String fibre, String protein, String salt, String carbs)
 	{
 		this.energy = Float.parseFloat(energy);
 		this.fat = Float.parseFloat(fat);
@@ -18,9 +18,10 @@ public class NutritionTable
 		this.fibre = Float.parseFloat(fibre);
 		this.protein = Float.parseFloat(protein);
 		this.salt = Float.parseFloat(salt);
+		this.carbs =  Float.parseFloat(carbs);;
 	}
 
-	public NutritionTable(float energy, float fat, float sats, float sugars, float fibre, float protein, float salt)
+	public NutritionTable(float energy, float fat, float sats, float sugars, float fibre, float protein, float salt, float carbs)
 	{
 		this.energy = energy;
 		this.fat = fat;
@@ -29,6 +30,7 @@ public class NutritionTable
 		this.fibre = fibre;
 		this.protein = protein;
 		this.salt = salt;
+		this.carbs = carbs;
 	}
 
 	public float getCarbs()
@@ -122,7 +124,7 @@ public class NutritionTable
 	{
 		String delim = ",";
 		return energy + delim + fat + delim + sats + delim + sugars + delim + fibre + delim + protein + delim
-				+ salt;
+				+ salt + delim + carbs;
 	}
 
 	public static NutritionTable CSV2Table(String[] fields)
@@ -134,7 +136,8 @@ public class NutritionTable
 				fields[3],
 				fields[4],
 				fields[5],
-				fields[6]);
+				fields[6],
+				fields[7]);
 	}
 
 }
