@@ -1,9 +1,97 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.example.mallocc.caloriecompanion.AboutActivity">
+    tools:context="com.example.mallocc.caloriecompanion.AboutActivity"
+    android:padding="20dp">
 
-</android.support.constraint.ConstraintLayout>
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/textView12"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Calorie Companion"
+            android:textAlignment="center"
+            android:textAllCaps="true"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/textView14"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="3rd Year Project: Smart Kitchen Scale to Aid the Health Conscience"
+            android:textAlignment="center"
+            android:textAllCaps="false"
+            android:textSize="18sp"
+            android:textStyle="italic" />
+
+        <TextView
+            android:layout_marginTop="10dp"
+            android:id="@+id/textView16"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Background:"
+            android:textAllCaps="false"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/textView5"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="10dp"
+            android:text="There is a very large industry for healthy lifestyle products, such as: fit-bit, which tracks your steps and calorie burn; or nutritional scales that can display caloric information of basic foods. However, they don’t tend to focus on issues of: ease of use, use of richer product databases and the affordability of tools to help people with health conditions. To combat this problem I will be creating an easy to use smart kitchen scale product that also connects to a smartphone, which is able to retrieve information about the food that is being weighed. I will be doing this by planning and designing the whole system and developing a prototype that aims to provide a vision of an affordable, easy to use tool that can help people to improve their health"
+            android:textSize="11sp" />
+
+        <TextView
+            android:id="@+id/textView15"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Researched and developed by"
+            android:textAlignment="center"
+            android:textSize="12sp"
+            android:textStyle="italic" />
+
+        <TextView
+            android:id="@+id/textView19"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Alexander Everett"
+            android:textAlignment="center"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/textView18"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Dissertation for BSc Computer Science at the University of Southampton"
+            android:textAlignment="center"
+            android:textSize="14sp"
+            android:textStyle="italic"
+            android:layout_marginBottom="10dp"/>
+
+        <TextView
+            android:id="@+id/textView20"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="10dp"
+            android:text="Supervisor: Nick Harris"
+            android:textAlignment="center"
+            android:textSize="14sp"
+            android:textStyle="italic" />
+
+        <ImageView
+            android:id="@+id/imageView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+           android:src="@drawable/university_southampton_white_on_blue_0" />
+
+    </LinearLayout>
+</RelativeLayout>

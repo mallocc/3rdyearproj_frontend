@@ -13,7 +13,10 @@ public class ScalesDevice {
 
     public void setRaw (String raw)
     {
-        weight = Float.parseFloat(raw);
+        if(HelperUtils.checkFloat(raw))
+        {
+            weight = Float.parseFloat(raw);
+        }
         this.raw = raw;
     }
 

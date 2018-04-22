@@ -39,15 +39,29 @@ public class Controller {
     public ArrayList<Product> searchProductName(String name, int querySize) throws IOException, ParseException {
         ArrayList<Product> products = new ArrayList<>();
 
+        // add first search cached product
         Product product = model.getProductName(name);
         if (product != null) {
             products.add(product);
-            return products;
         }
 
-        products = cloud.searchName(name, querySize);
+        // add products from internet search
+        products.addAll(cloud.searchName(name, querySize));
+
+        // remove all products that are the same as cached product
+        if(product != null) {
+            ArrayList<Product> removeProducts = new ArrayList<>();
+            for (Product p : products)
+                if (product != p)
+                    if (product.getTPNC().equals(p.getTPNC()))
+                        removeProducts.add(p);
+            products.removeAll(removeProducts);
+        }
+
+        // update temp products searched name
         for (Product p : products)
             p.setSearchedName(name);
+
         return products;
     }
 

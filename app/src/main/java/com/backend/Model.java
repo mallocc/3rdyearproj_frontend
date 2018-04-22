@@ -102,8 +102,6 @@ public class Model {
         return null;
     }
 
-
-
     public float getCurrentCalories(float weight) {
         if (currentProduct != null && currentProduct.getNutrition() != null)
             return (currentCalories = weight * currentProduct.getNutrition().getEnergy() / 100.0f) + offsetCalories;

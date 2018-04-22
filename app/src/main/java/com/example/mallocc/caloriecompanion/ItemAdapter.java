@@ -73,6 +73,9 @@ class ItemAdapter extends ArrayAdapter<Product>
                 imageView.setImageBitmap(bitmap);
         }
 
+        if(product.getNutrition() == null)
+            imageView.setImageDrawable(context.getResources().getDrawable(R.drawable.no_information_outline));
+
         // 4. Set the text for textView
         labelView.setText(product.getName());
 

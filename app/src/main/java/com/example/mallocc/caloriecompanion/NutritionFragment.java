@@ -64,6 +64,26 @@ public class NutritionFragment extends Fragment {
                         txt = getActivity().findViewById(R.id.text_salt);
                         txt.setText(ScalesDevice.toString(product.getNutrition().getSalt()));
                     }
+                    else
+                    {
+                        txt = getActivity().findViewById(R.id.text_calories_2);
+                        txt.setText("NA");
+
+                        txt = getActivity().findViewById(R.id.text_fat);
+                        txt.setText("NA");
+                        txt = getActivity().findViewById(R.id.text_sat);
+                        txt.setText("NA");
+                        txt = getActivity().findViewById(R.id.text_carbs);
+                        txt.setText("NA");
+                        txt = getActivity().findViewById(R.id.text_fibre);
+                        txt.setText("NA");
+                        txt = getActivity().findViewById(R.id.text_sugar);
+                        txt.setText("NA");
+                        txt = getActivity().findViewById(R.id.text_protein);
+                        txt.setText("NA");
+                        txt = getActivity().findViewById(R.id.text_salt);
+                        txt.setText("NA");
+                    }
                 }
             });
         }
@@ -76,7 +96,7 @@ public class NutritionFragment extends Fragment {
                 @Override
                 public void run() {
                     LinearLayout holder = getActivity().findViewById(R.id.fragment_holder_2);
-                    holder.setAlpha(state ? 1.0f : 0.3f);
+                    holder.animate().alpha(state ? 1.0f : 0.3f);
                     holder.setClickable(state);
                 }
             });

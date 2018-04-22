@@ -1,28 +1,22 @@
 package com.example.mallocc.caloriecompanion;
 
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
-import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.ActivityNotFoundException;
-import android.content.Context;
-import android.content.ContextWrapper;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.media.MediaPlayer;
 import android.os.AsyncTask;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.provider.MediaStore;
 import android.speech.RecognizerIntent;
+import android.speech.tts.TextToSpeech;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.design.widget.TabLayout;
@@ -30,37 +24,26 @@ import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.InputType;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AbsListView;
 import android.widget.AdapterView;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.ListView;
-import android.widget.RelativeLayout;
 import android.widget.Toast;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.SocketTimeoutException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 import com.backend.Controller;
 import com.backend.HelperUtils;
-import com.backend.Model;
 import com.backend.NutritionTable;
 import com.backend.Product;
 import com.simpleJSON.parser.ParseException;
@@ -95,6 +78,8 @@ public class MainActivity extends AppCompatActivity {
 
     // beeper
     MediaPlayer beeper;
+
+    private Speaker speech;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -156,6 +141,8 @@ public class MainActivity extends AppCompatActivity {
         beeper = MediaPlayer.create(this, R.raw.beep);
 
         tryReconnect(null);
+
+        speech = new Speaker(this);
     }
 
     @Override
@@ -304,6 +291,9 @@ public class MainActivity extends AppCompatActivity {
 
     public void showLoading() {
         findViewById(R.id.loading_circle_normal).setVisibility(View.VISIBLE);
+        findViewById(R.id.textSearch).animate().alpha(0f);
+        findViewById(R.id.speechSearch).animate().alpha(0f);
+        findViewById(R.id.scanBarcode).animate().alpha(0f);
         findViewById(R.id.textSearch).setVisibility(View.GONE);
         findViewById(R.id.speechSearch).setVisibility(View.GONE);
         findViewById(R.id.scanBarcode).setVisibility(View.GONE);
@@ -311,6 +301,9 @@ public class MainActivity extends AppCompatActivity {
 
     public void hideLoading() {
         findViewById(R.id.loading_circle_normal).setVisibility(View.GONE);
+        findViewById(R.id.textSearch).animate().alpha(1f);
+        findViewById(R.id.speechSearch).animate().alpha(1f);
+        findViewById(R.id.scanBarcode).animate().alpha(1f);
         findViewById(R.id.textSearch).setVisibility(View.VISIBLE);
         findViewById(R.id.speechSearch).setVisibility(View.VISIBLE);
         findViewById(R.id.scanBarcode).setVisibility(View.VISIBLE);
@@ -322,6 +315,7 @@ public class MainActivity extends AppCompatActivity {
     public void showReconnectButton() {
         pagerAdapter.disableInterface();
         FloatingActionButton fbt_reconnect = findViewById(R.id.reconnect);
+        fbt_reconnect.animate().alpha(1f);
         fbt_reconnect.setVisibility(View.VISIBLE);
     }
 
@@ -331,6 +325,7 @@ public class MainActivity extends AppCompatActivity {
     public void hideReconnectButton() {
         pagerAdapter.enableInterface();
         FloatingActionButton fbt_reconnect = findViewById(R.id.reconnect);
+        fbt_reconnect.animate().alpha(0f);
         fbt_reconnect.setVisibility(View.GONE);
     }
 
@@ -356,16 +351,9 @@ public class MainActivity extends AppCompatActivity {
      */
     public void processSpeech(View view) {
         Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,
-                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault());
-        intent.putExtra(RecognizerIntent.EXTRA_PROMPT,
-                "Hi speak something");
-        try {
-            startActivityForResult(intent, REQ_CODE_SPEECH_INPUT);
-        } catch (ActivityNotFoundException a) {
-            a.printStackTrace();
-        }
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
+        intent.putExtra(RecognizerIntent.EXTRA_PROMPT, "Please speak command");
+        startActivityForResult(intent, REQ_CODE_SPEECH_INPUT);
     }
 
     /**
@@ -1004,38 +992,55 @@ public class MainActivity extends AppCompatActivity {
     //Getting the scan results
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
 
-        if(requestCode == RESULT_OK)
-            if (requestCode == RC_BARCODE_CAPTURE) {
-                if (resultCode == CommonStatusCodes.SUCCESS) {
-                    if (data != null) {
-                        Barcode barcode = data.getParcelableExtra(BarcodeCaptureActivity.BarcodeObject);
-
-                        beeper.start();
-
-                        new BarcodeSearchAsyncTask().execute(barcode.displayValue);
-                    }
-                }
-            } else if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
-                Bundle extras = data.getExtras();
-                currentPhoto = (Bitmap) extras.get("data");
+        if (requestCode == RC_BARCODE_CAPTURE && resultCode == CommonStatusCodes.SUCCESS) {
+            if (data != null) {
+                Barcode barcode = data.getParcelableExtra(BarcodeCaptureActivity.BarcodeObject);
+                beeper.start();
+                new BarcodeSearchAsyncTask().execute(barcode.displayValue);
             }
-            else if (requestCode == TEST && resultCode == RESULT_OK) {
-                Bundle extras = data.getExtras();
-                Product product = new Product("", "testbarcode", null );
-                savePicture(product, (Bitmap) extras.get("data"));
-                showImage(getProductBitmap(product));
+        }
 
-            }
-            else if(requestCode == REQ_CODE_SPEECH_INPUT && null != data)
+        if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
+            Bundle extras = data.getExtras();
+            currentPhoto = (Bitmap) extras.get("data");
+        }
+
+        if (requestCode == TEST && resultCode == RESULT_OK) {
+            Bundle extras = data.getExtras();
+            Product product = new Product("", "testbarcode", null );
+            savePicture(product, (Bitmap) extras.get("data"));
+            showImage(getProductBitmap(product));
+
+        }
+
+        if(requestCode == REQ_CODE_SPEECH_INPUT && data != null && resultCode == CommonStatusCodes.SUCCESS)
+        {
+            String result = data
+                    .getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS).get(0);
+
+            String[] words = result.split(" ",2);
+
+            switch(words[0])
             {
-                ArrayList<String> result = data
-                        .getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
-                new ProductSearchAsyncTask().execute(result.get(0));
+                case "search":
+                    String[] check1 = words[1].split(" ",2);
+                    String query;
+                    if(check1[0].equals("for"))
+                        query = check1[1];
+                    else
+                        query = words[1];
+
+                    new ProductSearchAsyncTask().execute(query);
+
+                    speech.speek("Searching for, " + query);
+                    break;
+                default:
+                    speech.speek("I didn't understand that.");
             }
-            else {
-                super.onActivityResult(requestCode, resultCode, data);
-            }
+
+        }
 
     }
 

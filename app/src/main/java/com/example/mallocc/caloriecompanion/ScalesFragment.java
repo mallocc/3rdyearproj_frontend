@@ -57,7 +57,7 @@ public class ScalesFragment extends Fragment
                 @Override
                 public void run() {
                     LinearLayout holder = getActivity().findViewById(R.id.fragment_holder);
-                    holder.setAlpha(state ? 1.0f : 0.3f);
+                    holder.animate().alpha(state ? 1.0f : 0.3f);
                     holder.setClickable(state);
                 }
             });

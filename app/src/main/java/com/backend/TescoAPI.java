@@ -28,8 +28,9 @@ public class TescoAPI
 
 	static String TAG = "TESCO_API";
 
-
-
+	static private String TESCO_IMAGE_TAG = "https://img.tesco.com/Groceries/pi/";
+	static private String TESCO_TABLE_TAG = "<table>";
+	static private String TESCO_TABLE_ENDTAG = "</table>";
 
 	private Product getJSONProduct(String url) throws ParseException, IOException
 	{
@@ -297,8 +298,12 @@ public class TescoAPI
 		Log.e(TAG, "Starting query...");
 		Connection.Response response = null;
 		Document doc = null;
+		String body = null;
 		try {
-			response = Jsoup.connect(url).execute();
+			response = Jsoup.connect(url)
+					.userAgent("Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:25.0) Gecko/20100101 Firefox/25.0")
+					.referrer("http://www.google.com")
+					.maxBodySize(0).execute();
 			if (response== null)
 			{
 				Log.e(TAG, "connection response null");
@@ -306,27 +311,39 @@ public class TescoAPI
 			}
 			if(response.statusCode() == 404)
 			{
-				Log.e(TAG, "item not found on tesco.co.uk");
+				Log.e(TAG, "item not found on tesco.com");
 				return null;
 			}
 			Log.e(TAG, "status code : " + response.statusCode());
-			doc = response.parse();
-			if (doc == null)
+
+			body = response.body();
+			if (body == null)
 			{
-				Log.e(TAG, "null doc");
+				Log.e(TAG, "null body");
 				return null;
 			}
+
 		}catch (HttpStatusException e)
 		{
 			Log.e(TAG, "http status error", e);
 			return null;
 		}
 
-		for (Element e : doc.select("img")) {
-			String image = e.attr("src");
-			System.out.println(image);
-			product.setImageUrl(image);
-			break;
+		int pos = body.indexOf(TESCO_IMAGE_TAG);
+		String image = body.substring(pos, body.indexOf(".jpg", pos)+4);
+		System.out.println(image);
+		product.setImageUrl(image);
+
+		pos = body.indexOf(TESCO_TABLE_TAG);
+		if(pos < 0)
+			return null;
+
+		String table = body.substring(pos, body.indexOf(TESCO_TABLE_ENDTAG, pos) + TESCO_TABLE_ENDTAG.length());
+		doc = Jsoup.parse(table);
+		if (doc == null)
+		{
+			Log.e(TAG, "null doc");
+			return null;
 		}
 
 		Elements headerrow = doc.select("th");
@@ -403,9 +420,12 @@ public class TescoAPI
 		String url = "https://www.tesco.com/groceries/en-GB/products/" + tpnc;
 
 		Connection.Response response = null;
-		Document doc = null;
+		String body = null;
 		try {
-			response = Jsoup.connect(url).execute();
+			response = Jsoup.connect(url)
+					.userAgent("Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:25.0) Gecko/20100101 Firefox/25.0")
+					.referrer("http://www.google.com")
+					.maxBodySize(0).execute();
 			if (response== null)
 			{
 				Log.e(TAG, "connection response null");
@@ -413,14 +433,16 @@ public class TescoAPI
 			}
 			if(response.statusCode() == 404)
 			{
-				Log.e(TAG, "item not found on tesco.co.uk");
+				Log.e(TAG, "item not found on tesco.com");
 				return "";
 			}
 			Log.e(TAG, "status code : " + response.statusCode());
-			doc = response.parse();
-			if (doc == null)
+
+			body = response.body();
+
+			if (body == null)
 			{
-				Log.e(TAG, "null doc");
+				Log.e(TAG, "null body");
 				return "";
 			}
 		}catch (HttpStatusException e)
@@ -429,12 +451,10 @@ public class TescoAPI
 			return "";
 		}
 
-        for (Element e : doc.select("img")) {
-            String image = e.attr("src");
-            System.out.println(image);
-            return image;
-        }
-        return "";
+		int pos = body.indexOf(TESCO_IMAGE_TAG);
+		String image = body.substring(pos, body.indexOf(".jpg", pos)+4);
+		System.out.println(image);
+        return image;
     }
 
 
